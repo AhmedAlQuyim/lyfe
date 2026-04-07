@@ -1,26 +1,83 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Class-based dark mode — dark: variants activate when .dark is on <html> */
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* ─── Fonts ─── */
+  --font-display: var(--font-outfit);
+  --font-sans:    var(--font-dm-sans);
+
+  /* ─── Background ─── */
+  --color-bg:      #F4F3F0;
+  --color-bg-dark: #0D0D12;
+
+  /* ─── Surface (cards) ─── */
+  --color-surface:      #FFFFFF;
+  --color-surface-dark: #171722;
+
+  /* ─── Surface 2 (nested, inputs, hover) ─── */
+  --color-surface-2:      #ECEAE6;
+  --color-surface-2-dark: #20202E;
+
+  /* ─── Border ─── */
+  --color-border:      #E2DED8;
+  --color-border-dark: #2A2A3A;
+
+  /* ─── Text ─── */
+  --color-text:       #1A1A2E;
+  --color-text-dark:  #EAE9F4;
+  --color-muted:      #8C8A97;
+  --color-muted-dark: #5C5C78;
+
+  /* ─── Accents ─── */
+  --color-accent:      #44A87A;
+  --color-accent-dark: #7C6EF8;
+  --color-mint:        #3EC99A;
+  --color-violet:      #7C6EF8;
+  --color-coral:       #FF7B72;
+  --color-amber:       #F5A524;
+  --color-sky:         #5BAFEF;
+  --color-rose:        #F07FC6;
+  --color-lime:        #8DD44C;
+  --color-orange:      #F97316;
+
+  /* ─── Priority ─── */
+  --color-urgent: #FF6B6B;
+  --color-high:   #F5A524;
+  --color-medium: #5BAFEF;
+  --color-low:    #3EC99A;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* ─── Safe-area utilities (iPhone notch / Dynamic Island) ─── */
+@utility pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+@utility pt-safe { padding-top:    env(safe-area-inset-top, 0px); }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─── Hide scrollbar, keep scroll ─── */
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width:    none;
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ─── Base ─── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.2); border-radius: 2px; }
+
+/* ─── Selection ─── */
+::selection { background: #7C6EF840; color: inherit; }
