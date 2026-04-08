@@ -3,13 +3,16 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { format, addDays, parseISO } from 'date-fns';
 import {
-  mockTasks, mockWorkouts, mockGoals, mockIdeas, WORKOUT_TEMPLATES,
+  mockTasks, mockWorkouts, mockGoals, mockIdeas, WORKOUT_TEMPLATES, mockTaskStreak, mockSupplies,
   type Task, type Workout, type WorkoutTemplate, type WorkoutProgram, type Goal, type Idea,
+  type TaskStreakState, type SupplyItem,
 } from './mock-data';
+import { updateTaskStreak } from './streak';
 
 interface AppStore {
   /* ── Tasks ── */
   tasks:       Task[];
+  taskStreak:  TaskStreakState;
   addTask:     (task: Task)    => void;
   addTasks:    (tasks: Task[]) => void;
   updateTask:  (task: Task)    => void;
@@ -48,17 +51,24 @@ interface AppStore {
   addIdea:    (idea: Idea)   => void;
   updateIdea: (idea: Idea)   => void;
   deleteIdea: (id: string)   => void;
+  /* ── Supplies ── */
+  supplies:      SupplyItem[];
+  addSupply:     (supply: SupplyItem) => void;
+  updateSupply:  (supply: SupplyItem) => void;
+  deleteSupply:  (id: string)         => void;
 }
 
 const AppContext = createContext<AppStore | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [tasks,     setTasks]     = useState<Task[]>(mockTasks);
+  const [tasks,       setTasks]       = useState<Task[]>(mockTasks);
+  const [taskStreak,  setTaskStreak]  = useState<TaskStreakState>(mockTaskStreak);
   const [workouts,  setWorkouts]  = useState<Workout[]>(mockWorkouts);
   const [templates, setTemplates] = useState<WorkoutTemplate[]>(WORKOUT_TEMPLATES);
   const [programs,  setPrograms]  = useState<WorkoutProgram[]>([]);
   const [goals, setGoals] = useState<Goal[]>(mockGoals);
   const [ideas, setIdeas] = useState<Idea[]>(mockIdeas);
+  const [supplies, setSupplies] = useState<SupplyItem[]>(mockSupplies);
 
   /* Goals */
   const addGoal    = (g: Goal) => setGoals(prev => [g, ...prev]);
@@ -70,14 +80,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updateIdea = (i: Idea)   => setIdeas(prev => prev.map(x => x.id === i.id ? i : x));
   const deleteIdea = (id: string) => setIdeas(prev => prev.filter(x => x.id !== id));
 
+  /* Supplies */
+  const addSupply    = (s: SupplyItem) => setSupplies(prev => [s, ...prev]);
+  const updateSupply = (s: SupplyItem) => setSupplies(prev => prev.map(x => x.id === s.id ? s : x));
+  const deleteSupply = (id: string)    => setSupplies(prev => prev.filter(x => x.id !== id));
+
   /* Tasks */
   const addTask    = (t: Task)     => setTasks(prev => [t, ...prev]);
   const addTasks   = (ts: Task[])  => setTasks(prev => [...ts, ...prev]);
   const updateTask = (t: Task)     => setTasks(prev => prev.map(x => x.id === t.id ? t : x));
   const deleteTask = (id: string)  => setTasks(prev => prev.filter(x => x.id !== id));
-  const toggleTask = (id: string)  => setTasks(prev =>
-    prev.map(x => x.id === id ? { ...x, completed: !x.completed } : x)
-  );
+  const toggleTask = (id: string) => {
+    const updated = tasks.map(x => x.id === id ? { ...x, completed: !x.completed } : x);
+    const today = new Date().toISOString().split('T')[0];
+    setTasks(updated);
+    setTaskStreak(s => updateTaskStreak(updated, s, today));
+  };
 
   /* Workouts */
   const addWorkout  = (w: Workout)    => setWorkouts(prev => [w, ...prev]);
@@ -155,12 +173,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      tasks, addTask, addTasks, updateTask, deleteTask, toggleTask,
+      tasks, taskStreak, addTask, addTasks, updateTask, deleteTask, toggleTask,
       workouts, addWorkout, addWorkouts, updateWorkout, toggleWorkoutCompleted, skipWorkout, pushWorkout,
       templates, addTemplate, updateTemplate, deleteTemplate,
       programs, addProgram,
       goals, addGoal, updateGoal, deleteGoal,
       ideas, addIdea, updateIdea, deleteIdea,
+      supplies, addSupply, updateSupply, deleteSupply,
     }}>
       {children}
     </AppContext.Provider>

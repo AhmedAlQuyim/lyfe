@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, ChevronRight, Flame, Zap, Trophy, CheckCircle2, Circle } from 'lucide-react';
 import Link from 'next/link';
-import { mockGoals, mockTasks, mockStats, type Task } from '@/lib/mock-data';
+import { mockStats, type Task } from '@/lib/mock-data';
+import { useAppStore } from '@/lib/app-store';
 import { cn, timeToMinutes, durationPx, getCurrentMinutes, formatDisplayTime, formatDuration, minutesToPx } from '@/lib/utils';
 
 /* ─── Progress Ring ─── */
@@ -117,10 +118,13 @@ function TaskItem({ task, onToggle }: { task: Task; onToggle: (id: string) => vo
 
 /* ─── Dashboard Page ─── */
 export default function DashboardPage() {
-  const [tasks, setTasks] = useState(mockTasks.filter(t => t.dueDate === '2025-04-06'));
+  const { tasks: allTasks, goals, taskStreak, toggleTask } = useAppStore();
   const [showConfetti, setShowConfetti] = useState(false);
   const [currentMins, setCurrentMins] = useState(getCurrentMinutes());
   const timelineRef = useRef<HTMLDivElement>(null);
+
+  const today = new Date().toISOString().split('T')[0];
+  const tasks = allTasks.filter(t => t.dueDate === today);
 
   const PX_PER_HOUR = 64;
   const now = new Date();
@@ -142,15 +146,12 @@ export default function DashboardPage() {
   }, []);
 
   const handleToggle = (id: string) => {
-    setTasks(prev => {
-      const updated = prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
-      const justCompleted = !prev.find(t => t.id === id)!.completed;
-      if (justCompleted) {
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 1600);
-      }
-      return updated;
-    });
+    const t = allTasks.find(x => x.id === id);
+    if (t && !t.completed) {
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 1600);
+    }
+    toggleTask(id);
   };
 
   const greetings = ['Good morning', 'Good afternoon', 'Good evening'];
@@ -175,9 +176,9 @@ export default function DashboardPage() {
         initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }}
       >
         {[
-          { icon: '🔥', label: 'Day Streak', value: mockStats.currentStreak, color: '#F5A524' },
+          { icon: '🔥', label: 'Day Streak', value: taskStreak.current, color: '#F5A524' },
           { icon: '✅', label: 'Done today', value: `${completedToday}/${tasks.length}`, color: '#3EC99A' },
-          { icon: '🎯', label: 'Active Goals', value: mockStats.goalsActive, color: '#7C6EF8' },
+          { icon: '🎯', label: 'Active Goals', value: goals.filter(g => g.status === 'active').length, color: '#7C6EF8' },
         ].map(s => (
           <div key={s.label} className="bg-surface dark:bg-surface-dark rounded-2xl p-3 border border-border dark:border-border-dark">
             <span className="text-lg">{s.icon}</span>
@@ -245,7 +246,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4 pb-1">
-          {mockGoals.slice(0, 4).map(g => {
+          {goals.slice(0, 4).map(g => {
             const progress = Math.round((g.milestones.filter(m => m.completed).length / g.milestones.length) * 100);
             return (
               <Link key={g.id} href={`/goals`}>

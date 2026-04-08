@@ -15,6 +15,15 @@ export interface Milestone {
   title: string;
   completed: boolean;
   completedAt?: string;
+  /** End of the period by which this milestone must be completed for the streak to continue. */
+  dueBy?: string;
+}
+
+export interface TaskStreakState {
+  current: number;
+  longest: number;
+  /** ISO date (YYYY-MM-DD) of the last day all tasks were completed. */
+  lastCompletedDate: string | null;
 }
 
 export interface Task {
@@ -220,16 +229,16 @@ export const mockGoals: Goal[] = [
     icon: '🏃',
     color: '#7C6EF8',
     description: 'Complete my first full marathon by October. Training 4x per week.',
-    targetDate: '2025-10-15',
+    targetDate: '2026-10-15',
     status: 'active',
     milestones: [
-      { id: '1', title: 'Run 5K without stopping', completed: true, completedAt: '2025-03-01' },
-      { id: '2', title: 'Complete first 10K race', completed: true, completedAt: '2025-03-20' },
-      { id: '3', title: 'Half marathon training block', completed: false },
-      { id: '4', title: 'Run 30K long run', completed: false },
-      { id: '5', title: 'Race day! 🏁', completed: false },
+      { id: '1', title: 'Run 5K without stopping',      completed: true,  completedAt: '2026-01-20', dueBy: '2026-01-31' },
+      { id: '2', title: 'Complete first 10K race',      completed: true,  completedAt: '2026-02-22', dueBy: '2026-02-28' },
+      { id: '3', title: 'Half marathon training block', completed: false,                             dueBy: '2026-05-31' },
+      { id: '4', title: 'Run 30K long run',             completed: false,                             dueBy: '2026-07-31' },
+      { id: '5', title: 'Race day! 🏁',                  completed: false,                             dueBy: '2026-10-15' },
     ],
-    streak: { current: 12, longest: 18 },
+    streak: { current: 2, longest: 2 },
   },
   {
     id: '2',
@@ -237,16 +246,16 @@ export const mockGoals: Goal[] = [
     icon: '📚',
     color: '#3EC99A',
     description: '2 books per month. Currently reading: Atomic Habits.',
-    targetDate: '2025-12-31',
+    targetDate: '2026-12-31',
     status: 'active',
     milestones: [
-      { id: '1', title: 'January ×2', completed: true, completedAt: '2025-01-31' },
-      { id: '2', title: 'February ×2', completed: true, completedAt: '2025-02-28' },
-      { id: '3', title: 'March ×2', completed: true, completedAt: '2025-03-31' },
-      { id: '4', title: 'April ×2', completed: false },
-      { id: '5', title: 'First half (12 books)', completed: false },
+      { id: '1', title: 'January ×2',           completed: true,  completedAt: '2026-01-28', dueBy: '2026-01-31' },
+      { id: '2', title: 'February ×2',          completed: true,  completedAt: '2026-02-25', dueBy: '2026-02-28' },
+      { id: '3', title: 'March ×2',             completed: true,  completedAt: '2026-03-29', dueBy: '2026-03-31' },
+      { id: '4', title: 'April ×2',             completed: false,                             dueBy: '2026-04-30' },
+      { id: '5', title: 'First half (12 books)', completed: false,                             dueBy: '2026-06-30' },
     ],
-    streak: { current: 7, longest: 22 },
+    streak: { current: 3, longest: 3 },
   },
   {
     id: '3',
@@ -254,16 +263,17 @@ export const mockGoals: Goal[] = [
     icon: '🚀',
     color: '#FF7B72',
     description: 'Ship the personal life management app to production.',
-    targetDate: '2025-05-30',
+    targetDate: '2026-05-30',
     status: 'active',
     milestones: [
-      { id: '1', title: 'Define MVP features', completed: true, completedAt: '2025-04-01' },
-      { id: '2', title: 'Build UI prototype', completed: false },
-      { id: '3', title: 'Connect Supabase backend', completed: false },
-      { id: '4', title: 'Beta testing round', completed: false },
-      { id: '5', title: 'Launch! 🎉', completed: false },
+      { id: '1', title: 'Define MVP features',       completed: true,  completedAt: '2026-01-10', dueBy: '2026-01-15' },
+      { id: '2', title: 'Build UI prototype',        completed: false,                             dueBy: '2026-02-28' },
+      { id: '3', title: 'Connect Supabase backend',  completed: false,                             dueBy: '2026-04-30' },
+      { id: '4', title: 'Beta testing round',        completed: false,                             dueBy: '2026-05-15' },
+      { id: '5', title: 'Launch! 🎉',                 completed: false,                             dueBy: '2026-05-30' },
     ],
-    streak: { current: 3, longest: 8 },
+    // M2 was overdue (2026-02-28 < today) and not done → streak resets after M1
+    streak: { current: 0, longest: 1 },
   },
   {
     id: '4',
@@ -271,14 +281,14 @@ export const mockGoals: Goal[] = [
     icon: '🧘',
     color: '#F5A524',
     description: 'Build a consistent morning meditation practice — 10 min daily.',
-    targetDate: '2025-12-31',
+    targetDate: '2026-12-31',
     status: 'active',
     milestones: [
-      { id: '1', title: '7-day streak', completed: true, completedAt: '2025-03-15' },
-      { id: '2', title: '21-day streak', completed: false },
-      { id: '3', title: '100 sessions', completed: false },
+      { id: '1', title: '7-day streak',   completed: true,  completedAt: '2026-01-07', dueBy: '2026-01-07' },
+      { id: '2', title: '21-day streak',  completed: true,  completedAt: '2026-01-29', dueBy: '2026-01-31' },
+      { id: '3', title: '100 sessions',   completed: false,                             dueBy: '2026-06-30' },
     ],
-    streak: { current: 21, longest: 21 },
+    streak: { current: 2, longest: 2 },
   },
 ];
 
@@ -289,7 +299,7 @@ export const mockTasks: Task[] = [
     icon: '🧘',
     color: '#F5A524',
     priority: 'high',
-    dueDate: '2025-04-06',
+    dueDate: '2026-04-06',
     startTime: '07:00',
     endTime: '07:15',
     completed: true,
@@ -302,7 +312,7 @@ export const mockTasks: Task[] = [
     icon: '📋',
     color: '#7C6EF8',
     priority: 'urgent',
-    dueDate: '2025-04-06',
+    dueDate: '2026-04-06',
     startTime: '09:00',
     endTime: '10:00',
     completed: false,
@@ -315,7 +325,7 @@ export const mockTasks: Task[] = [
     icon: '🥗',
     color: '#3EC99A',
     priority: 'medium',
-    dueDate: '2025-04-06',
+    dueDate: '2026-04-06',
     startTime: '12:30',
     endTime: '13:15',
     completed: false,
@@ -327,7 +337,7 @@ export const mockTasks: Task[] = [
     icon: '🏃',
     color: '#7C6EF8',
     priority: 'high',
-    dueDate: '2025-04-06',
+    dueDate: '2026-04-06',
     startTime: '17:30',
     endTime: '18:30',
     completed: false,
@@ -340,7 +350,7 @@ export const mockTasks: Task[] = [
     icon: '📚',
     color: '#3EC99A',
     priority: 'medium',
-    dueDate: '2025-04-06',
+    dueDate: '2026-04-06',
     startTime: '20:00',
     endTime: '20:30',
     completed: false,
@@ -353,7 +363,7 @@ export const mockTasks: Task[] = [
     icon: '🛒',
     color: '#FF7B72',
     priority: 'medium',
-    dueDate: '2025-04-06',
+    dueDate: '2026-04-06',
     completed: false,
     recurring: false,
   },
@@ -363,7 +373,7 @@ export const mockTasks: Task[] = [
     icon: '📞',
     color: '#5BAFEF',
     priority: 'low',
-    dueDate: '2025-04-07',
+    dueDate: '2026-04-07',
     completed: false,
     recurring: false,
   },
@@ -373,7 +383,7 @@ export const mockTasks: Task[] = [
     icon: '📅',
     color: '#7C6EF8',
     priority: 'high',
-    dueDate: '2025-04-07',
+    dueDate: '2026-04-07',
     startTime: '10:00',
     endTime: '11:00',
     completed: false,
@@ -385,7 +395,7 @@ export const mockTasks: Task[] = [
     icon: '💪',
     color: '#F97316',
     priority: 'high',
-    dueDate: '2025-04-08',
+    dueDate: '2026-04-08',
     startTime: '07:00',
     endTime: '08:00',
     completed: false,
@@ -397,7 +407,7 @@ export const mockTasks: Task[] = [
     icon: '🎨',
     color: '#F07FC6',
     priority: 'medium',
-    dueDate: '2025-04-08',
+    dueDate: '2026-04-08',
     completed: false,
     recurring: false,
     goalId: '3',
@@ -498,3 +508,113 @@ export const mockStats = {
   goalsActive: 4,
   workoutsThisWeek: 3,
 };
+
+/**
+ * Initial task streak state for the app store.
+ * lastCompletedDate = yesterday → completing today's tasks will increment to 6.
+ */
+export const mockTaskStreak: TaskStreakState = {
+  current: 5,
+  longest: 12,
+  lastCompletedDate: '2026-04-07',
+};
+
+export interface User {
+  name: string;
+  email: string;
+  avatarInitials: string;
+  joinedDate: string; // YYYY-MM-DD
+}
+
+export const mockUser: User = {
+  name: 'Ahmed',
+  email: 'ahmed@lyfe.app',
+  avatarInitials: 'AH',
+  joinedDate: '2026-01-01',
+};
+
+// ─── Supplies ───────────────────────────────────────────────────────────────
+
+export type SupplyPeriod   = 'weekly' | 'biweekly' | 'monthly' | 'quarterly';
+export type SupplyCategory = 'household' | 'personal' | 'food' | 'other';
+
+export interface SupplyItem {
+  id:                 string;
+  title:              string;
+  icon:               string;
+  color:              string;
+  category:           SupplyCategory;
+  /** Recurrence period. null = one-off shopping list item (no progress tracking). */
+  period:             SupplyPeriod | null;
+  /** YYYY-MM-DD date of last purchase. null = never refilled → treated as immediately needed. */
+  lastRefilled:       string | null;
+  /** Manually flagged as needed — forces shopping list inclusion regardless of progress. */
+  needed:             boolean;
+  notes?:             string;
+  /** Task ID created via "Add to Today's Tasks", cleared on Mark as Refilled. */
+  convertedToTaskId?: string;
+}
+
+export const mockSupplies: SupplyItem[] = [
+  {
+    id: 'supply-1',
+    title: 'Coffee',
+    icon: '☕',
+    color: '#F5A524',
+    category: 'food',
+    period: 'monthly',
+    lastRefilled: '2026-03-08',  // 31 days ago → 103% → NEEDED
+    needed: true,
+    notes: 'Dark roast, 500g bag.',
+  },
+  {
+    id: 'supply-2',
+    title: 'Shampoo',
+    icon: '🧴',
+    color: '#5BAFEF',
+    category: 'personal',
+    period: 'monthly',
+    lastRefilled: '2026-03-17',  // 22 days ago → 73% → LOW
+    needed: false,
+  },
+  {
+    id: 'supply-3',
+    title: 'Perfume',
+    icon: '🌸',
+    color: '#F07FC6',
+    category: 'personal',
+    period: 'quarterly',
+    lastRefilled: '2026-01-15',  // 83 days ago → 92% → LOW
+    needed: false,
+  },
+  {
+    id: 'supply-4',
+    title: 'Dishwasher Soap',
+    icon: '🫧',
+    color: '#3EC99A',
+    category: 'household',
+    period: 'monthly',
+    lastRefilled: '2026-04-01',  // 7 days ago → 23% → OK
+    needed: false,
+  },
+  {
+    id: 'supply-5',
+    title: 'Toothpaste',
+    icon: '🦷',
+    color: '#7C6EF8',
+    category: 'personal',
+    period: 'monthly',
+    lastRefilled: '2026-03-22',  // 17 days ago → 57% → OK
+    needed: false,
+  },
+  {
+    id: 'supply-6',
+    title: 'Hand Soap',
+    icon: '🧼',
+    color: '#FF7B72',
+    category: 'household',
+    period: 'biweekly',
+    lastRefilled: '2026-04-01',  // 7 days ago → 50% → OK
+    needed: false,
+  },
+];

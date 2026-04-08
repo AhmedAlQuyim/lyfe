@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Check, ChevronRight, X, Flame, Pencil } from 'lucide-react';
 import { type Goal, type Milestone } from '@/lib/mock-data';
 import { useAppStore } from '@/lib/app-store';
+import { computeGoalStreak } from '@/lib/streak';
 import { cn } from '@/lib/utils';
 
 const PRESET_COLORS = ['#7C6EF8', '#3EC99A', '#FF7B72', '#F5A524', '#5BAFEF', '#F07FC6', '#94A3B8'];
@@ -505,15 +506,20 @@ export default function GoalsPage() {
   const handleMilestoneToggle = (goalId: string, milestoneId: string) => {
     const goal = goals.find(g => g.id === goalId);
     if (!goal) return;
-    const milestones = goal.milestones.map(m =>
-      m.id === milestoneId ? { ...m, completed: !m.completed } : m
-    );
+    const today = new Date().toISOString().split('T')[0];
     const justCompleted = !goal.milestones.find(m => m.id === milestoneId)!.completed;
+    const milestones = goal.milestones.map(m =>
+      m.id === milestoneId
+        ? { ...m, completed: !m.completed, completedAt: justCompleted ? today : undefined }
+        : m
+    );
     if (justCompleted) {
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 1600);
     }
-    const updated = { ...goal, milestones };
+    const computed = computeGoalStreak(milestones, today);
+    const newLongest = Math.max(computed.longest, goal.streak.longest);
+    const updated = { ...goal, milestones, streak: { current: computed.current, longest: newLongest } };
     updateGoal(updated);
     setSelectedGoal(updated);
   };

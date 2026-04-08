@@ -448,7 +448,6 @@ export default function TasksPage() {
   const { tasks, addTask, updateTask, deleteTask, toggleTask } = useAppStore();
 
   const [filter,          setFilter]         = useState<Filter>('today');
-  const [priorityFilter,  setPriorityFilter] = useState<Task['priority'] | 'all'>('all');
   const [sortBy,          setSortBy]         = useState<'due' | 'time' | 'priority'>('due');
   const [showAdd,         setShowAdd]        = useState(false);
   const [editingTask,     setEditingTask]    = useState<Task | null>(null);
@@ -465,8 +464,7 @@ export default function TasksPage() {
         if (filter === 'done')     return t.completed;
         return true;
       })();
-      const passPriority = priorityFilter === 'all' || t.priority === priorityFilter;
-      return passTime && passPriority;
+      return passTime;
     })
     .sort((a, b) => {
       if (sortBy === 'priority') {
@@ -546,31 +544,6 @@ export default function TasksPage() {
             {f.key === 'today' && <span className="ml-1.5 text-[10px] opacity-70">{totalToday}</span>}
           </button>
         ))}
-      </motion.div>
-
-      {/* Priority filter chips */}
-      <motion.div className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-4 px-4"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.06 }}>
-        {(['all', 'urgent', 'high', 'medium', 'low'] as const).map(p => {
-          const isAll    = p === 'all';
-          const isActive = priorityFilter === p;
-          const hex      = isAll ? '' : priorityConfig[p].hex;
-          const label    = isAll ? 'All priorities' : priorityConfig[p].label;
-          return (
-            <button key={p} onClick={() => setPriorityFilter(p)}
-              className={cn('shrink-0 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all duration-200',
-                !isActive && 'bg-surface dark:bg-surface-dark text-muted dark:text-muted-dark border border-border dark:border-border-dark'
-              )}
-              style={isActive
-                ? isAll
-                  ? { backgroundColor: 'rgba(124,110,248,0.15)', color: '#7C6EF8', outline: '1.5px solid rgba(124,110,248,0.4)' }
-                  : { backgroundColor: hex + '22', color: hex, outline: `1.5px solid ${hex}60` }
-                : {}
-              }>
-              {label}
-            </button>
-          );
-        })}
       </motion.div>
 
       {/* Sort chips */}

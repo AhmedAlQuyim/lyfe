@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Target, CheckSquare, Dumbbell, Calendar, Lightbulb } from 'lucide-react';
+import { Home, Target, CheckSquare, Dumbbell, Calendar, Lightbulb, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -11,7 +11,8 @@ const navItems = [
   { href: '/tasks',     icon: CheckSquare, label: 'Tasks'    },
   { href: '/workouts',  icon: Dumbbell,    label: 'Workouts' },
   { href: '/ideas',     icon: Lightbulb,   label: 'Ideas'    },
-  { href: '/schedule',  icon: Calendar,    label: 'Schedule' },
+  { href: '/schedule',  icon: Calendar,     label: 'Schedule' },
+  { href: '/supplies',  icon: ShoppingCart, label: 'Supplies' },
 ];
 
 export function BottomNav() {
