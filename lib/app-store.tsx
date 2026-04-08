@@ -94,7 +94,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setWorkouts(data.workouts);
       setIdeas(data.ideas);
       setSupplies(data.supplies);
-      if (data.taskStreak) setTaskStreak(data.taskStreak);
+      setTaskStreak(data.taskStreak ?? { current: 0, longest: 0, lastCompletedDate: null });
     });
     return () => { cancelled = true; };
   }, []);
