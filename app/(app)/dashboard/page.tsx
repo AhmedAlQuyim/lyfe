@@ -188,55 +188,59 @@ export default function DashboardPage() {
         ))}
       </motion.div>
 
-      {/* ─── Mini Timeline ─── */}
+      {/* ─── Today's Tasks ─── */}
       <motion.div
-        className="bg-surface dark:bg-surface-dark rounded-2xl border border-border dark:border-border-dark overflow-hidden"
+        className="bg-surface dark:bg-surface-dark rounded-2xl border border-border dark:border-border-dark"
         initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
       >
-        <div className="flex items-center justify-between px-4 pt-4 pb-2">
-          <h2 className="text-[13px] font-semibold text-text dark:text-text-dark font-display">Today's Schedule</h2>
-          <Link href="/schedule" className="text-[11px] font-medium text-accent dark:text-violet flex items-center gap-0.5">
-            Full view <ChevronRight size={12} />
+        <div className="flex items-center justify-between px-4 pt-4 pb-1">
+          <h2 className="text-[13px] font-semibold text-text dark:text-text-dark font-display">Today's Tasks</h2>
+          <Link href="/tasks" className="text-[11px] font-medium text-accent dark:text-violet flex items-center gap-0.5">
+            All tasks <ChevronRight size={12} />
           </Link>
         </div>
 
-        <div
-          ref={timelineRef}
-          className="relative mx-4 mb-4"
-          style={{ height: timelineHeight }}
-        >
-          {/* Hour labels + grid lines */}
-          {Array.from({ length: visibleEndH - visibleStartH + 1 }, (_, i) => {
-            const h = visibleStartH + i;
-            const y = i * PX_PER_HOUR;
-            return (
-              <div key={h} className="absolute left-0 right-0 flex items-center gap-2" style={{ top: y }}>
-                <span className="text-[10px] text-muted dark:text-muted-dark w-10 text-right shrink-0 leading-none">
-                  {h === 0 ? '12am' : h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h - 12}pm`}
-                </span>
-                <div className="flex-1 border-t border-border/40 dark:border-border-dark/40" />
-              </div>
-            );
-          })}
-
-          {/* Task blocks */}
-          {scheduledTasks.map(t => (
-            <TimelineBlock key={t.id} task={t} visibleStart={visibleStartMins} />
-          ))}
-
-          {/* Current time indicator */}
-          {currentTop >= 0 && currentTop <= timelineHeight && (
-            <div className="absolute left-14 right-2 flex items-center gap-1 z-10 pointer-events-none" style={{ top: currentTop - 1 }}>
-              <div className="w-2 h-2 rounded-full bg-coral shrink-0" />
-              <div className="flex-1 h-[1.5px] bg-coral" />
-            </div>
-          )}
+        <div className="px-4 pb-2">
+          <AnimatePresence>
+            {tasks.slice(0, 6).map(task => (
+              <motion.div key={task.id} layout>
+                <TaskItem task={task} onToggle={handleToggle} />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
+
+        {tasks.length > 6 && (
+          <Link href="/tasks" className="block text-center text-[12px] text-muted dark:text-muted-dark py-3 border-t border-border/40 dark:border-border-dark/40 hover:text-text dark:hover:text-text-dark transition-colors">
+            +{tasks.length - 6} more tasks
+          </Link>
+        )}
+      </motion.div>
+
+      {/* ─── Workout shortcut ─── */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.15 }}
+      >
+        <Link href="/workouts">
+          <motion.div
+            whileTap={{ scale: 0.98 }}
+            className="bg-surface dark:bg-surface-dark rounded-2xl border border-border dark:border-border-dark p-4 flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-orange/15 flex items-center justify-center text-xl">💪</div>
+              <div>
+                <p className="text-[13px] font-semibold text-text dark:text-text-dark">Workouts</p>
+                <p className="text-[11px] text-muted dark:text-muted-dark">{mockStats.workoutsThisWeek} sessions this week</p>
+              </div>
+            </div>
+            <ChevronRight size={16} className="text-muted dark:text-muted-dark" />
+          </motion.div>
+        </Link>
       </motion.div>
 
       {/* ─── Active Goals ─── */}
       <motion.div
-        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.15 }}
+        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}
       >
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-[13px] font-semibold text-text dark:text-text-dark font-display">Active Goals</h2>
@@ -278,54 +282,50 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
-      {/* ─── Today's Tasks ─── */}
+      {/* ─── Mini Timeline ─── */}
       <motion.div
-        className="bg-surface dark:bg-surface-dark rounded-2xl border border-border dark:border-border-dark"
-        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}
-      >
-        <div className="flex items-center justify-between px-4 pt-4 pb-1">
-          <h2 className="text-[13px] font-semibold text-text dark:text-text-dark font-display">Today's Tasks</h2>
-          <Link href="/tasks" className="text-[11px] font-medium text-accent dark:text-violet flex items-center gap-0.5">
-            All tasks <ChevronRight size={12} />
-          </Link>
-        </div>
-
-        <div className="px-4 pb-2">
-          <AnimatePresence>
-            {tasks.slice(0, 6).map(task => (
-              <motion.div key={task.id} layout>
-                <TaskItem task={task} onToggle={handleToggle} />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-
-        {tasks.length > 6 && (
-          <Link href="/tasks" className="block text-center text-[12px] text-muted dark:text-muted-dark py-3 border-t border-border/40 dark:border-border-dark/40 hover:text-text dark:hover:text-text-dark transition-colors">
-            +{tasks.length - 6} more tasks
-          </Link>
-        )}
-      </motion.div>
-
-      {/* ─── Workout shortcut ─── */}
-      <motion.div
+        className="bg-surface dark:bg-surface-dark rounded-2xl border border-border dark:border-border-dark overflow-hidden"
         initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.25 }}
       >
-        <Link href="/workouts">
-          <motion.div
-            whileTap={{ scale: 0.98 }}
-            className="bg-surface dark:bg-surface-dark rounded-2xl border border-border dark:border-border-dark p-4 flex items-center justify-between"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-orange/15 flex items-center justify-center text-xl">💪</div>
-              <div>
-                <p className="text-[13px] font-semibold text-text dark:text-text-dark">Workouts</p>
-                <p className="text-[11px] text-muted dark:text-muted-dark">{mockStats.workoutsThisWeek} sessions this week</p>
+        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+          <h2 className="text-[13px] font-semibold text-text dark:text-text-dark font-display">Today's Schedule</h2>
+          <Link href="/schedule" className="text-[11px] font-medium text-accent dark:text-violet flex items-center gap-0.5">
+            Full view <ChevronRight size={12} />
+          </Link>
+        </div>
+
+        <div
+          ref={timelineRef}
+          className="relative mx-4 mb-4"
+          style={{ height: timelineHeight }}
+        >
+          {/* Hour labels + grid lines */}
+          {Array.from({ length: visibleEndH - visibleStartH + 1 }, (_, i) => {
+            const h = visibleStartH + i;
+            const y = i * PX_PER_HOUR;
+            return (
+              <div key={h} className="absolute left-0 right-0 flex items-center gap-2" style={{ top: y }}>
+                <span className="text-[10px] text-muted dark:text-muted-dark w-10 text-right shrink-0 leading-none">
+                  {h === 0 ? '12am' : h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h - 12}pm`}
+                </span>
+                <div className="flex-1 border-t border-border/40 dark:border-border-dark/40" />
               </div>
+            );
+          })}
+
+          {/* Task blocks */}
+          {scheduledTasks.map(t => (
+            <TimelineBlock key={t.id} task={t} visibleStart={visibleStartMins} />
+          ))}
+
+          {/* Current time indicator */}
+          {currentTop >= 0 && currentTop <= timelineHeight && (
+            <div className="absolute left-14 right-2 flex items-center gap-1 z-10 pointer-events-none" style={{ top: currentTop - 1 }}>
+              <div className="w-2 h-2 rounded-full bg-coral shrink-0" />
+              <div className="flex-1 h-[1.5px] bg-coral" />
             </div>
-            <ChevronRight size={16} className="text-muted dark:text-muted-dark" />
-          </motion.div>
-        </Link>
+          )}
+        </div>
       </motion.div>
     </div>
   );

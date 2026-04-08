@@ -144,7 +144,7 @@ function GoalFormSheet({ initial, onClose, zIndex = 50 }: {
           </div>
         </div>
 
-        <div className="px-5 pb-10 space-y-4">
+        <div className="px-5 pb-[88px] space-y-4">
           {/* Color palette */}
           <div>
             <p className="text-[11px] font-medium text-muted dark:text-muted-dark mb-2 uppercase tracking-wider">Color</p>
@@ -312,7 +312,7 @@ function GoalSheet({ goal, onClose, onMilestoneToggle, onEdit }: {
           <div className="w-10 h-1 rounded-full bg-border dark:bg-border-dark" />
         </div>
 
-        <div className="px-5 pb-8">
+        <div className="px-5 pb-[88px]">
           {/* Header */}
           <div className="flex items-start justify-between mb-5">
             <div className="flex items-center gap-3">

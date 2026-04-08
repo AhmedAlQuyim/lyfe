@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -190,6 +191,17 @@ export default function LoginPage() {
           )}
           Continue with Google
         </motion.button>
+
+        {/* Sign up link */}
+        <p className="text-center text-[13px] text-muted dark:text-muted-dark mt-5">
+          Don&apos;t have an account?{' '}
+          <Link
+            href="/signup"
+            className="font-semibold text-accent dark:text-violet hover:underline"
+          >
+            Sign up
+          </Link>
+        </p>
       </motion.div>
 
       {/* Footer */}

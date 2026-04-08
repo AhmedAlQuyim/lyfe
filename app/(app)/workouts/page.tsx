@@ -143,7 +143,7 @@ function TemplateEditorSheet({ initial, onClose, onSave }: {
           </div>
         </div>
 
-        <div className="px-5 pb-10 space-y-4">
+        <div className="px-5 pb-[88px] space-y-4">
           {/* Type */}
           <div className="grid grid-cols-4 gap-2">
             {(Object.entries(typeConfig) as [Workout['type'], typeof typeConfig[keyof typeof typeConfig]][]).map(([k, cfg]) => (
@@ -226,7 +226,7 @@ function ManageTemplatesSheet({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
-          <div className="px-5 pb-10 pt-3 space-y-2.5">
+          <div className="px-5 pb-[88px] pt-3 space-y-2.5">
             {templates.map(t => {
               const cfg = typeConfig[t.type];
               return (
@@ -432,7 +432,7 @@ function LogWorkoutSheet({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
-        <div className="px-5 pb-10 space-y-4">
+        <div className="px-5 pb-[88px] space-y-4">
           <TemplatePicker templates={templates} onSelect={loadTemplate} />
 
           {/* Type */}
@@ -679,7 +679,7 @@ function ProgramSheet({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
-        <div className="px-5 pb-10 space-y-5">
+        <div className="px-5 pb-[88px] space-y-5">
           {/* Program name */}
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Program name (e.g. Strength Block)"
             className="w-full bg-surface-2 dark:bg-surface-2-dark rounded-xl px-4 py-3 text-[15px] text-text dark:text-text-dark placeholder:text-muted dark:placeholder:text-muted-dark outline-none border-2 border-transparent focus:border-violet transition-colors" />
@@ -847,7 +847,7 @@ function ProgramDetailSheet({ program, onClose }: {
 
           <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-border dark:bg-border-dark" /></div>
 
-          <div className="px-5 pb-10">
+          <div className="px-5 pb-[88px]">
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1 min-w-0">
@@ -1136,7 +1136,7 @@ function EditWorkoutSheet({ initial, onClose, zIndex = 60 }: {
           </div>
         </div>
 
-        <div className="px-5 pb-10 space-y-4">
+        <div className="px-5 pb-[88px] space-y-4">
           {/* Type */}
           <div className="grid grid-cols-4 gap-2">
             {(Object.entries(typeConfig) as [Workout['type'], typeof typeConfig[keyof typeof typeConfig]][]).map(([k, cfg]) => (
@@ -1233,7 +1233,7 @@ function WorkoutDetail({ workout: initialWorkout, onClose, zIndex = 50 }: {
           initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
           transition={{ type: 'spring', stiffness: 380, damping: 40 }}>
           <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-border dark:bg-border-dark" /></div>
-          <div className="px-5 pb-10">
+          <div className="px-5 pb-[88px]">
 
             {/* Skipped banner */}
             {workout.skipped && (

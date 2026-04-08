@@ -89,7 +89,7 @@ function IdeaCaptureSheet({ initial, onClose, onSave }: {
           </div>
         </div>
 
-        <div className="px-5 pb-10 space-y-4">
+        <div className="px-5 pb-[88px] space-y-4">
           {/* Icon picker */}
           <div className="flex gap-2 flex-wrap">
             {IDEA_ICONS.map(i => (
@@ -221,7 +221,7 @@ function IdeaDetailSheet({ idea, onClose, onEdit }: {
 
         <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-border dark:bg-border-dark" /></div>
 
-        <div className="px-5 pb-10">
+        <div className="px-5 pb-[88px]">
           {/* Header */}
           <div className="flex items-start gap-3 mb-4">
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shrink-0"

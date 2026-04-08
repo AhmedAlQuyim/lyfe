@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-const PUBLIC_PATHS = ['/login', '/auth/callback'];
+const PUBLIC_PATHS = ['/', '/login', '/signup', '/auth/callback'];
 
 export async function proxy(request: NextRequest) {
   // If Supabase is not configured, allow all requests (local dev without auth)
@@ -38,8 +38,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.nextUrl));
   }
 
-  // Authenticated user hitting /login → /dashboard
-  if (user && path === '/login') {
+  // Authenticated user hitting /, /login or /signup → /dashboard
+  if (user && (path === '/' || path === '/login' || path === '/signup')) {
     return NextResponse.redirect(new URL('/dashboard', request.nextUrl));
   }
 

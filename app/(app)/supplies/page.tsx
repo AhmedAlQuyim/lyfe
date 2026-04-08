@@ -221,7 +221,7 @@ function SupplyDetailSheet({ item, today, onClose, onEdit }: {
           <div className="w-10 h-1 rounded-full bg-border dark:bg-border-dark" />
         </div>
 
-        <div className="px-5 pb-8">
+        <div className="px-5 pb-[88px]">
           {/* Header */}
           <div className="flex items-start gap-3 mb-6 sticky top-0 bg-surface dark:bg-surface-dark z-10 pt-2 pb-3">
             <div
@@ -445,7 +445,7 @@ function SupplyFormSheet({ initial, onClose, zIndex = 50 }: {
           </button>
         </div>
 
-        <div className="px-5 pb-10 space-y-5 pt-5">
+        <div className="px-5 pb-[88px] space-y-5 pt-5">
           {/* Color picker */}
           <div>
             <p className="text-[11px] font-semibold text-muted dark:text-muted-dark uppercase tracking-wider mb-2">Color</p>

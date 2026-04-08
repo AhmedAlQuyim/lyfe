@@ -2,20 +2,28 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, CalendarPlus } from 'lucide-react';
 import { format, addDays, subDays, parseISO, isToday as checkIsToday } from 'date-fns';
-import { mockTasks, type Task } from '@/lib/mock-data';
+import { type Task } from '@/lib/mock-data';
+import { useAppStore } from '@/lib/app-store';
 import { cn, timeToPx, durationPx, getCurrentMinutes, formatDisplayTime } from '@/lib/utils';
 
 const PX_PER_HOUR = 80;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
+function addMins(time: string, mins: number): string {
+  const [h, m] = time.split(':').map(Number);
+  const total  = h * 60 + m + mins;
+  return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
 /* ─── Schedule Block ─── */
 function ScheduleBlock({ task }: { task: Task }) {
-  if (!task.startTime || !task.endTime) return null;
+  if (!task.startTime) return null;
 
-  const top = timeToPx(task.startTime, PX_PER_HOUR);
-  const height = Math.max(durationPx(task.startTime, task.endTime, PX_PER_HOUR), 28);
+  const effectiveEnd = task.endTime ?? addMins(task.startTime, 30);
+  const top    = timeToPx(task.startTime, PX_PER_HOUR);
+  const height = Math.max(durationPx(task.startTime, effectiveEnd, PX_PER_HOUR), 28);
   const isShort = height < 44;
 
   return (
@@ -34,7 +42,7 @@ function ScheduleBlock({ task }: { task: Task }) {
               {task.title}
             </p>
             <p className="text-[10px] opacity-70" style={{ color: task.color }}>
-              {formatDisplayTime(task.startTime)} – {formatDisplayTime(task.endTime)}
+              {formatDisplayTime(task.startTime)}{task.endTime ? ` – ${formatDisplayTime(task.endTime)}` : ''}
             </p>
           </div>
         ) : (
@@ -91,15 +99,71 @@ function HourGrid() {
   );
 }
 
+/* ─── ICS Export ─── */
+function toICSDateTime(dateStr: string, timeStr: string): string {
+  // Produces floating local-time stamp: YYYYMMDDTHHmmss
+  const [y, m, d] = dateStr.split('-');
+  const [hh, mm]  = timeStr.split(':');
+  return `${y}${m}${d}T${hh}${mm}00`;
+}
+
+function buildICS(tasks: Task[], dateStr: string): string {
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//LYFE//LYFE Schedule//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+  ];
+  for (const t of tasks) {
+    if (!t.startTime) continue;
+    const end = t.endTime ?? addMins(t.startTime, 30);
+    lines.push(
+      'BEGIN:VEVENT',
+      `UID:${t.id}-${dateStr}@lyfe`,
+      `DTSTART:${toICSDateTime(dateStr, t.startTime)}`,
+      `DTEND:${toICSDateTime(dateStr, end)}`,
+      `SUMMARY:${t.icon} ${t.title}`,
+      'END:VEVENT',
+    );
+  }
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+
+async function exportToCalendar(tasks: Task[], dateStr: string, displayDate: string) {
+  const content  = buildICS(tasks, dateStr);
+  const filename = `lyfe-${dateStr}.ics`;
+  const blob     = new Blob([content], { type: 'text/calendar;charset=utf-8' });
+  const file     = new File([blob], filename, { type: 'text/calendar' });
+
+  // Web Share API (iOS share sheet / Android intent — includes native Calendar)
+  if (typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ title: `LYFE — ${displayDate}`, files: [file] });
+      return;
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return; // user cancelled
+    }
+  }
+
+  // Fallback: trigger .ics download (iOS Calendar opens it on tap; Android prompts calendar app)
+  const url = URL.createObjectURL(blob);
+  const a   = Object.assign(document.createElement('a'), { href: url, download: filename });
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 /* ─── Schedule Page ─── */
 export default function SchedulePage() {
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 3, 6)); // April 6 2025
+  const { tasks: allTasks } = useAppStore();
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [currentMins, setCurrentMins] = useState(getCurrentMinutes());
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const dateStr = format(currentDate, 'yyyy-MM-dd');
   const isToday = checkIsToday(currentDate);
-  const dayTasks = mockTasks.filter(t => t.dueDate === dateStr && t.startTime && t.endTime);
+  const dayTasks = allTasks.filter(t => t.dueDate === dateStr && t.startTime);
 
   // Scroll to current time on mount (if today)
   useEffect(() => {
@@ -154,7 +218,7 @@ export default function SchedulePage() {
       </motion.div>
 
       {/* Stats bar */}
-      <div className="flex items-center gap-3 mb-4 shrink-0">
+      <div className="flex items-center gap-2 mb-4 shrink-0">
         <div className="flex items-center gap-1.5 px-3 py-1.5 bg-surface dark:bg-surface-dark rounded-full border border-border dark:border-border-dark">
           <span className="text-xs">📅</span>
           <span className="text-[11px] font-medium text-text dark:text-text-dark">{dayTasks.length} events</span>
@@ -171,6 +235,16 @@ export default function SchedulePage() {
         )}
         {dayTasks.length === 0 && (
           <span className="text-[11px] text-muted dark:text-muted-dark">— free day!</span>
+        )}
+        {dayTasks.length > 0 && (
+          <motion.button
+            onClick={() => exportToCalendar(dayTasks, dateStr, format(currentDate, 'MMMM d, yyyy'))}
+            whileTap={{ scale: 0.95 }}
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-violet/10 rounded-full border border-violet/30"
+          >
+            <CalendarPlus size={11} className="text-violet" />
+            <span className="text-[11px] font-medium text-violet">Add to Calendar</span>
+          </motion.button>
         )}
       </div>
 

@@ -6,6 +6,7 @@ import { Plus, Check, Trash2, Pencil, X, Clock, Calendar, RotateCcw, ChevronRigh
 import { type Task } from '@/lib/mock-data';
 import { useAppStore } from '@/lib/app-store';
 import { cn, formatRelativeDate, priorityConfig, formatDisplayTime } from '@/lib/utils';
+import { playCompletionSound } from '@/lib/sounds';
 
 /* ─── Confetti ─── */
 const CONFETTI_COLORS = ['#7C6EF8', '#3EC99A', '#FF7B72', '#F5A524', '#5BAFEF'];
@@ -68,7 +69,7 @@ function TaskDetailSheet({ task, onClose, onEdit, onToggle }: {
           <div className="w-10 h-1 rounded-full bg-border dark:bg-border-dark" />
         </div>
 
-        <div className="px-5 pb-10">
+        <div className="px-5 pb-[88px]">
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -170,7 +171,7 @@ function TaskFormSheet({ initial, onClose, onSave }: {
   const [title,      setTitle]      = useState(initial?.title      ?? '');
   const [selectedIcon, setSelectedIcon] = useState(initial?.icon   ?? '📋');
   const [priority,   setPriority]   = useState<Task['priority']>(initial?.priority ?? 'medium');
-  const [dueDate,    setDueDate]    = useState(initial?.dueDate     ?? '2025-04-06');
+  const [dueDate,    setDueDate]    = useState(initial?.dueDate     ?? new Date().toISOString().split('T')[0]);
   const [startTime,  setStartTime]  = useState(initial?.startTime  ?? '');
   const [endTime,    setEndTime]    = useState(initial?.endTime     ?? '');
   const [recurring,  setRecurring]  = useState(initial?.recurring  ?? false);
@@ -213,7 +214,7 @@ function TaskFormSheet({ initial, onClose, onSave }: {
           <div className="w-10 h-1 rounded-full bg-border dark:bg-border-dark" />
         </div>
 
-        <div className="px-5 pb-10 space-y-4">
+        <div className="px-5 pb-[88px] space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold font-display text-text dark:text-text-dark">
               {isEdit ? 'Edit Task' : 'New Task'}
@@ -485,6 +486,7 @@ export default function TasksPage() {
     if (justCompleted) {
       setConfetti({ x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 });
       setTimeout(() => setConfetti(null), 1500);
+      playCompletionSound();
     }
     toggleTask(id);
   };
@@ -493,6 +495,7 @@ export default function TasksPage() {
     const isCompleting = !tasks.find(t => t.id === id)?.completed;
     toggleTask(id);
     if (isCompleting) {
+      playCompletionSound();
       setTimeout(() => {
         setConfetti({ x: window.innerWidth / 2, y: window.innerHeight / 3 });
         setTimeout(() => setConfetti(null), 1500);
