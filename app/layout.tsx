@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Outfit, DM_Sans } from 'next/font/google';
+import { Outfit, DM_Sans, Noto_Sans_Arabic } from 'next/font/google';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import './globals.css';
 
@@ -14,6 +14,13 @@ const dmSans = DM_Sans({
   variable: '--font-dm-sans',
   subsets: ['latin'],
   weight: ['400', '500', '600'],
+  display: 'swap',
+});
+
+const notoSansArabic = Noto_Sans_Arabic({
+  variable: '--font-noto-arabic',
+  subsets: ['arabic'],
+  weight: ['400', '500', '600', '700'],
   display: 'swap',
 });
 
@@ -43,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${outfit.variable} ${dmSans.variable} h-full`}
+      className={`${outfit.variable} ${dmSans.variable} ${notoSansArabic.variable} h-full`}
     >
       <head>
         {/* Prevent theme flash on load */}

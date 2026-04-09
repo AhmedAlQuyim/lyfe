@@ -6,7 +6,7 @@
 @theme {
   /* ─── Fonts ─── */
   --font-display: var(--font-outfit);
-  --font-sans:    var(--font-dm-sans);
+  --font-sans:    var(--font-dm-sans), var(--font-noto-arabic);
 
   /* ─── Background ─── */
   --color-bg:      #F4F3F0;
