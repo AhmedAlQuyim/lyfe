@@ -10,6 +10,9 @@ import { cn, timeToPx, durationPx, getCurrentMinutes, formatDisplayTime } from '
 
 const PX_PER_HOUR = 80;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const LABEL_W = 64; // px — matches w-16
+const RIGHT_GAP = 12; // px — matches right-3
+const COL_GAP = 3; // px gap between side-by-side blocks
 
 function addMins(time: string, mins: number): string {
   const [h, m] = time.split(':').map(Number);
@@ -17,8 +20,51 @@ function addMins(time: string, mins: number): string {
   return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
+function timeToMins(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+}
+
+/* ─── Overlap Layout ─── */
+type LayoutInfo = { columnIndex: number; totalColumns: number };
+
+function computeOverlaps(tasks: Task[]): Map<string, LayoutInfo> {
+  const result = new Map<string, LayoutInfo>();
+  if (!tasks.length) return result;
+
+  const intervals = tasks.map(t => ({
+    id:    t.id,
+    start: timeToMins(t.startTime!),
+    end:   t.endTime ? timeToMins(t.endTime) : timeToMins(t.startTime!) + 30,
+  })).sort((a, b) => a.start - b.start);
+
+  // Greedy column assignment — place each task in the first column it fits
+  const colEnds: number[] = []; // end-time of the last task placed in each column
+  const colOf = new Map<string, number>();
+
+  for (const iv of intervals) {
+    let col = colEnds.findIndex(end => end <= iv.start);
+    if (col === -1) col = colEnds.length;
+    colEnds[col] = iv.end;
+    colOf.set(iv.id, col);
+  }
+
+  // For each task, the "total columns" is the max column index of any task it overlaps + 1
+  for (const iv of intervals) {
+    let maxCol = colOf.get(iv.id)!;
+    for (const other of intervals) {
+      if (other.id !== iv.id && other.start < iv.end && other.end > iv.start) {
+        maxCol = Math.max(maxCol, colOf.get(other.id)!);
+      }
+    }
+    result.set(iv.id, { columnIndex: colOf.get(iv.id)!, totalColumns: maxCol + 1 });
+  }
+
+  return result;
+}
+
 /* ─── Schedule Block ─── */
-function ScheduleBlock({ task }: { task: Task }) {
+function ScheduleBlock({ task, layout }: { task: Task; layout: LayoutInfo }) {
   if (!task.startTime) return null;
 
   const effectiveEnd = task.endTime ?? addMins(task.startTime, 30);
@@ -26,12 +72,17 @@ function ScheduleBlock({ task }: { task: Task }) {
   const height = Math.max(durationPx(task.startTime, effectiveEnd, PX_PER_HOUR), 28);
   const isShort = height < 44;
 
+  const { columnIndex, totalColumns } = layout;
+  // Divide the available content area into equal columns with a small gap
+  const leftPx  = `calc(${LABEL_W}px + ${columnIndex / totalColumns} * (100% - ${LABEL_W + RIGHT_GAP}px) + ${columnIndex > 0 ? COL_GAP / 2 : 0}px)`;
+  const rightPx = `calc(${RIGHT_GAP}px + ${(totalColumns - columnIndex - 1) / totalColumns} * (100% - ${LABEL_W + RIGHT_GAP}px) + ${columnIndex < totalColumns - 1 ? COL_GAP / 2 : 0}px)`;
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="absolute left-16 right-3 rounded-2xl overflow-hidden cursor-pointer select-none"
-      style={{ top, height, backgroundColor: task.color + '20', borderLeft: `4px solid ${task.color}` }}
+      className="absolute rounded-2xl overflow-hidden cursor-pointer select-none"
+      style={{ top, height, left: leftPx, right: rightPx, backgroundColor: task.color + '20', borderLeft: `4px solid ${task.color}` }}
       whileTap={{ scale: 0.98 }}
     >
       <div className="flex items-start gap-1.5 px-2.5 py-1.5 h-full">
@@ -164,6 +215,7 @@ export default function SchedulePage() {
   const dateStr = format(currentDate, 'yyyy-MM-dd');
   const isToday = checkIsToday(currentDate);
   const dayTasks = allTasks.filter(t => t.dueDate === dateStr && t.startTime);
+  const layoutMap = computeOverlaps(dayTasks);
 
   // Scroll to current time on mount (if today)
   useEffect(() => {
@@ -259,7 +311,7 @@ export default function SchedulePage() {
 
           {/* Task blocks */}
           {dayTasks.map(task => (
-            <ScheduleBlock key={task.id} task={task} />
+            <ScheduleBlock key={task.id} task={task} layout={layoutMap.get(task.id)!} />
           ))}
 
           {/* Current time indicator (today only) */}
