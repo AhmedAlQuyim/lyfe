@@ -15,6 +15,7 @@ const dmSans = DM_Sans({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
   display: 'swap',
+  adjustFontFallback: false,
 });
 
 const notoSansArabic = Noto_Sans_Arabic({
