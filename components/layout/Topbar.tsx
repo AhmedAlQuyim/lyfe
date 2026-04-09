@@ -1,14 +1,35 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useAppStore } from '@/lib/app-store';
-import { mockUser } from '@/lib/mock-data';
+import { createClient } from '@/lib/supabase/client';
+
+function getInitials(name?: string | null, email?: string | null): string {
+  if (name) {
+    const parts = name.trim().split(/\s+/);
+    return (parts[0][0] + (parts[1]?.[0] ?? '')).toUpperCase();
+  }
+  if (email) return email[0].toUpperCase();
+  return '?';
+}
 
 export function Topbar() {
   const { taskStreak } = useAppStore();
   const today = new Date();
+  const [initials, setInitials] = useState('');
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      setInitials(getInitials(
+        data.user?.user_metadata?.full_name,
+        data.user?.email,
+      ));
+    });
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 pt-safe">
@@ -54,7 +75,7 @@ export function Topbar() {
                 className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold text-white shadow-sm select-none"
                 style={{ background: 'linear-gradient(135deg, #7C6EF8 0%, #3EC99A 100%)' }}
               >
-                {mockUser.avatarInitials}
+                {initials}
               </motion.div>
             </Link>
 
