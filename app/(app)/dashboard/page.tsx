@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, ChevronRight, Flame, Zap, Trophy, CheckCircle2, Circle } from 'lucide-react';
 import Link from 'next/link';
-import { mockStats, type Task } from '@/lib/mock-data';
+import { type Task } from '@/lib/mock-data';
 import { useAppStore } from '@/lib/app-store';
 import { cn, timeToMinutes, durationPx, getCurrentMinutes, formatDisplayTime, formatDuration, minutesToPx } from '@/lib/utils';
 
@@ -118,7 +118,7 @@ function TaskItem({ task, onToggle }: { task: Task; onToggle: (id: string) => vo
 
 /* ─── Dashboard Page ─── */
 export default function DashboardPage() {
-  const { tasks: allTasks, goals, taskStreak, toggleTask } = useAppStore();
+  const { tasks: allTasks, goals, workouts, taskStreak, toggleTask } = useAppStore();
   const [showConfetti, setShowConfetti] = useState(false);
   const [currentMins, setCurrentMins] = useState(getCurrentMinutes());
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -139,6 +139,11 @@ export default function DashboardPage() {
 
   const scheduledTasks = tasks.filter(t => t.startTime && t.endTime);
   const completedToday = tasks.filter(t => t.completed).length;
+
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7)); // Monday
+  weekStart.setHours(0, 0, 0, 0);
+  const workoutsThisWeek = workouts.filter(w => new Date(w.date) >= weekStart).length;
 
   useEffect(() => {
     const interval = setInterval(() => setCurrentMins(getCurrentMinutes()), 60_000);
@@ -230,7 +235,7 @@ export default function DashboardPage() {
               <div className="w-10 h-10 rounded-xl bg-orange/15 flex items-center justify-center text-xl">💪</div>
               <div>
                 <p className="text-[13px] font-semibold text-text dark:text-text-dark">Workouts</p>
-                <p className="text-[11px] text-muted dark:text-muted-dark">{mockStats.workoutsThisWeek} sessions this week</p>
+                <p className="text-[11px] text-muted dark:text-muted-dark">{workoutsThisWeek} sessions this week</p>
               </div>
             </div>
             <ChevronRight size={16} className="text-muted dark:text-muted-dark" />
