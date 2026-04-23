@@ -100,7 +100,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setSupplies(data.supplies);
       setTaskStreak(data.taskStreak ?? { current: 0, longest: 0, lastCompletedDate: null });
       console.log('[LYFE] loaded from DB — programs:', data.programs.length, 'templates:', data.templates.length);
-      setPrograms(data.programs);
+
+      // ── Orphan recovery: workouts that reference a missing program record ──
+      const knownProgIds = new Set(data.programs.map(p => p.id));
+      const orphanProgIds = [
+        ...new Set(
+          data.workouts
+            .filter(w => w.programId && !knownProgIds.has(w.programId))
+            .map(w => w.programId!)
+        ),
+      ];
+      const recoveredPrograms: WorkoutProgram[] = orphanProgIds.map(progId => {
+        const pw = data.workouts.filter(w => w.programId === progId);
+        const sorted = [...pw].sort((a, b) => a.date.localeCompare(b.date));
+        // Derive a name from the first session title (strip the "(Month D, YYYY)" suffix)
+        const derivedName = (sorted[0]?.title ?? 'Program').replace(/ \(\w+ \d+, \d{4}\)$/, '');
+        return {
+          id: progId,
+          name: derivedName,
+          startDate: sorted[0]?.date ?? new Date().toISOString().split('T')[0],
+          endDate:   sorted[sorted.length - 1]?.date ?? new Date().toISOString().split('T')[0],
+          schedule:  [],
+          generatedWorkoutIds: pw.map(w => w.id),
+        };
+      });
+      if (recoveredPrograms.length > 0) {
+        console.log('[LYFE] recovering', recoveredPrograms.length, 'orphaned program(s):', recoveredPrograms.map(p => p.name));
+        recoveredPrograms.forEach(p => dbUpsertProgram(p));
+      }
+      setPrograms([...data.programs, ...recoveredPrograms]);
       // Seed default templates for first-time users; otherwise use saved ones
       if (data.templates.length > 0) {
         setTemplates(data.templates);
