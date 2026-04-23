@@ -315,8 +315,8 @@ export async function fetchAllData() {
     { data: ideasRows },
     { data: suppliesRows },
     { data: streakRow },
-    { data: templatesRows },
-    { data: programsRows },
+    { data: templatesRows, error: templatesError },
+    { data: programsRows,  error: programsError  },
   ] = await Promise.all([
     supabase.from('tasks').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
     supabase.from('goals').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
@@ -329,6 +329,9 @@ export async function fetchAllData() {
     supabase.from('workout_templates').select('*').eq('user_id', uid).order('created_at'),
     supabase.from('workout_programs').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
   ]);
+
+  if (templatesError) console.error('[LYFE] workout_templates fetch error:', templatesError);
+  if (programsError)  console.error('[LYFE] workout_programs fetch error:',  programsError);
 
   const goals: Goal[] = (goalsRows ?? []).map(g =>
     rowToGoal(
@@ -478,8 +481,10 @@ export async function dbUpsertTemplates(ts: WorkoutTemplate[]) {
 
 export async function dbUpsertProgram(p: WorkoutProgram) {
   const user = await getUser();
-  if (!user) return;
-  await createClient().from('workout_programs').upsert(programToRow(p, user.id));
+  if (!user) { console.error('[LYFE] dbUpsertProgram: no authenticated user'); return; }
+  const { error } = await createClient().from('workout_programs').upsert(programToRow(p, user.id));
+  if (error) console.error('[LYFE] dbUpsertProgram error:', error);
+  else console.log('[LYFE] program saved to DB:', p.id, p.name);
 }
 
 export async function dbDeleteProgram(id: string) {

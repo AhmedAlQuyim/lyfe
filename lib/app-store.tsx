@@ -97,6 +97,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setIdeas(data.ideas);
       setSupplies(data.supplies);
       setTaskStreak(data.taskStreak ?? { current: 0, longest: 0, lastCompletedDate: null });
+      console.log('[LYFE] loaded from DB — programs:', data.programs.length, 'templates:', data.templates.length);
       setPrograms(data.programs);
       // Seed default templates for first-time users; otherwise use saved ones
       if (data.templates.length > 0) {
