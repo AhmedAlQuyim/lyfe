@@ -7,6 +7,7 @@ import { createClient } from '../supabase/client';
 import type {
   Task, Goal, Milestone, Workout, Exercise,
   Idea, SupplyItem, TaskStreakState,
+  WorkoutTemplate, WorkoutProgram,
 } from '../mock-data';
 
 // ─── Auth helper ─────────────────────────────────────────────────────────────
@@ -244,6 +245,58 @@ function rowToStreak(r: any): TaskStreakState {
   };
 }
 
+// ─── WorkoutTemplate mappers ─────────────────────────────────────────────────
+
+function templateToRow(t: WorkoutTemplate, userId: string) {
+  return {
+    id: t.id,
+    user_id: userId,
+    name: t.name,
+    type: t.type,
+    icon: t.icon,
+    duration_minutes: t.durationMinutes,
+    exercises: t.exercises,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function rowToTemplate(r: any): WorkoutTemplate {
+  return {
+    id: r.id,
+    name: r.name,
+    type: r.type,
+    icon: r.icon,
+    durationMinutes: r.duration_minutes,
+    exercises: r.exercises ?? [],
+  };
+}
+
+// ─── WorkoutProgram mappers ───────────────────────────────────────────────────
+
+function programToRow(p: WorkoutProgram, userId: string) {
+  return {
+    id: p.id,
+    user_id: userId,
+    name: p.name,
+    start_date: p.startDate,
+    end_date: p.endDate,
+    schedule: p.schedule,
+    generated_workout_ids: p.generatedWorkoutIds,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function rowToProgram(r: any): WorkoutProgram {
+  return {
+    id: r.id,
+    name: r.name,
+    startDate: r.start_date,
+    endDate: r.end_date,
+    schedule: r.schedule ?? [],
+    generatedWorkoutIds: r.generated_workout_ids ?? [],
+  };
+}
+
 // ─── Fetch all ───────────────────────────────────────────────────────────────
 
 export async function fetchAllData() {
@@ -262,6 +315,8 @@ export async function fetchAllData() {
     { data: ideasRows },
     { data: suppliesRows },
     { data: streakRow },
+    { data: templatesRows },
+    { data: programsRows },
   ] = await Promise.all([
     supabase.from('tasks').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
     supabase.from('goals').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
@@ -271,6 +326,8 @@ export async function fetchAllData() {
     supabase.from('ideas').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
     supabase.from('supplies').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
     supabase.from('task_streak').select('*').eq('user_id', uid).maybeSingle(),
+    supabase.from('workout_templates').select('*').eq('user_id', uid).order('created_at'),
+    supabase.from('workout_programs').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
   ]);
 
   const goals: Goal[] = (goalsRows ?? []).map(g =>
@@ -300,6 +357,8 @@ export async function fetchAllData() {
     ideas: (ideasRows ?? []).map(rowToIdea),
     supplies: (suppliesRows ?? []).map(rowToSupply),
     taskStreak: streakRow ? rowToStreak(streakRow) : null,
+    templates: (templatesRows ?? []).map(rowToTemplate),
+    programs: (programsRows ?? []).map(rowToProgram),
   };
 }
 
@@ -393,4 +452,36 @@ export async function dbUpsertSupply(supply: SupplyItem) {
 
 export async function dbDeleteSupply(id: string) {
   await createClient().from('supplies').delete().eq('id', id);
+}
+
+// ─── Templates ───────────────────────────────────────────────────────────────
+
+export async function dbUpsertTemplate(t: WorkoutTemplate) {
+  const user = await getUser();
+  if (!user) return;
+  await createClient().from('workout_templates').upsert(templateToRow(t, user.id));
+}
+
+export async function dbDeleteTemplate(id: string) {
+  await createClient().from('workout_templates').delete().eq('id', id);
+}
+
+export async function dbUpsertTemplates(ts: WorkoutTemplate[]) {
+  const user = await getUser();
+  if (!user) return;
+  await createClient()
+    .from('workout_templates')
+    .upsert(ts.map(t => templateToRow(t, user.id)));
+}
+
+// ─── Programs ────────────────────────────────────────────────────────────────
+
+export async function dbUpsertProgram(p: WorkoutProgram) {
+  const user = await getUser();
+  if (!user) return;
+  await createClient().from('workout_programs').upsert(programToRow(p, user.id));
+}
+
+export async function dbDeleteProgram(id: string) {
+  await createClient().from('workout_programs').delete().eq('id', id);
 }

@@ -15,6 +15,8 @@ import {
   dbUpsertWorkout, dbDeleteWorkout,
   dbUpsertIdea, dbDeleteIdea,
   dbUpsertSupply, dbDeleteSupply,
+  dbUpsertTemplate, dbDeleteTemplate, dbUpsertTemplates,
+  dbUpsertProgram,
 } from './db';
 
 interface AppStore {
@@ -71,15 +73,15 @@ interface AppStore {
 const AppContext = createContext<AppStore | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [tasks,       setTasks]       = useState<Task[]>(mockTasks);
-  const [taskStreak,  setTaskStreak]  = useState<TaskStreakState>(mockTaskStreak);
-  const [workouts,  setWorkouts]  = useState<Workout[]>(mockWorkouts);
-  const [templates, setTemplates] = useState<WorkoutTemplate[]>(WORKOUT_TEMPLATES);
+  const [isLoading, setIsLoading] = useState(true);
+  const [tasks,       setTasks]       = useState<Task[]>([]);
+  const [taskStreak,  setTaskStreak]  = useState<TaskStreakState>({ current: 0, longest: 0, lastCompletedDate: null });
+  const [workouts,  setWorkouts]  = useState<Workout[]>([]);
+  const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
   const [programs,  setPrograms]  = useState<WorkoutProgram[]>([]);
-  const [goals, setGoals] = useState<Goal[]>(mockGoals);
-  const [ideas, setIdeas] = useState<Idea[]>(mockIdeas);
-  const [supplies, setSupplies] = useState<SupplyItem[]>(mockSupplies);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [ideas, setIdeas] = useState<Idea[]>([]);
+  const [supplies, setSupplies] = useState<SupplyItem[]>([]);
 
   // ── Load from Supabase on mount ────────────────────────────────────────────
   useEffect(() => {
@@ -88,13 +90,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     fetchAllData().then(data => {
       if (cancelled) return;
       setIsLoading(false);
-      if (!data) return; // not logged in — keep mock data for preview
+      if (!data) return; // not logged in — middleware will redirect
       setTasks(data.tasks);
       setGoals(data.goals);
       setWorkouts(data.workouts);
       setIdeas(data.ideas);
       setSupplies(data.supplies);
       setTaskStreak(data.taskStreak ?? { current: 0, longest: 0, lastCompletedDate: null });
+      setPrograms(data.programs);
+      // Seed default templates for first-time users; otherwise use saved ones
+      if (data.templates.length > 0) {
+        setTemplates(data.templates);
+      } else {
+        setTemplates(WORKOUT_TEMPLATES);
+        dbUpsertTemplates(WORKOUT_TEMPLATES);
+      }
     });
     return () => { cancelled = true; };
   }, []);
@@ -220,13 +230,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   // ── Templates ──────────────────────────────────────────────────────────────
-  // Templates are app-local (not user data), no DB sync needed
-  const addTemplate    = (t: WorkoutTemplate) => setTemplates(prev => [...prev, t]);
-  const updateTemplate = (t: WorkoutTemplate) => setTemplates(prev => prev.map(x => x.id === t.id ? t : x));
-  const deleteTemplate = (id: string)         => setTemplates(prev => prev.filter(x => x.id !== id));
+  const addTemplate    = (t: WorkoutTemplate) => { setTemplates(prev => [...prev, t]); dbUpsertTemplate(t); };
+  const updateTemplate = (t: WorkoutTemplate) => { setTemplates(prev => prev.map(x => x.id === t.id ? t : x)); dbUpsertTemplate(t); };
+  const deleteTemplate = (id: string)         => { setTemplates(prev => prev.filter(x => x.id !== id)); dbDeleteTemplate(id); };
 
   // ── Programs ───────────────────────────────────────────────────────────────
-  const addProgram = (p: WorkoutProgram) => setPrograms(prev => [p, ...prev]);
+  const addProgram = (p: WorkoutProgram) => { setPrograms(prev => [p, ...prev]); dbUpsertProgram(p); };
 
   return (
     <AppContext.Provider value={{
