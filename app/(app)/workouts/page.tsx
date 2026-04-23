@@ -813,13 +813,115 @@ function ProgramCard({ program, onClick }: { program: WorkoutProgram; onClick: (
 }
 
 /* ══════════════════════════════════════════════
+   Edit Program Sheet
+══════════════════════════════════════════════ */
+function EditProgramSheet({ program, onClose, onSave }: {
+  program: WorkoutProgram;
+  onClose: () => void;
+  onSave: (p: WorkoutProgram) => void;
+}) {
+  const { templates } = useAppStore();
+  const [name,      setName]      = useState(program.name);
+  const [startDate, setStartDate] = useState(program.startDate);
+  const [endDate,   setEndDate]   = useState(program.endDate);
+  const [schedule,  setSchedule]  = useState<ProgramScheduleDay[]>(program.schedule);
+
+  const addDay = () => setSchedule(p => [
+    ...p,
+    { id: `day-${Date.now()}`, dayLabel: `Day ${p.length + 1}`, templateId: templates[0]?.id ?? '', startTime: '' },
+  ]);
+  const updateDay = (id: string, field: keyof ProgramScheduleDay, val: string) =>
+    setSchedule(p => p.map(d => d.id === id ? { ...d, [field]: val } : d));
+  const deleteDay = (id: string) => setSchedule(p => p.filter(d => d.id !== id));
+
+  const save = () => {
+    if (!name.trim() || !startDate || !endDate) return;
+    onSave({ ...program, name: name.trim(), startDate, endDate, schedule });
+  };
+
+  return (
+    <motion.div className="fixed inset-0 z-[60] flex flex-col justify-end"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <motion.div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <motion.div className="relative bg-surface dark:bg-surface-dark rounded-t-3xl border-t-4 border-violet no-scrollbar"
+        style={{ maxHeight: '93vh', overflowY: 'auto' }}
+        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+        transition={{ type: 'spring', stiffness: 380, damping: 40 }}>
+
+        <div className="sticky top-0 bg-surface dark:bg-surface-dark z-10 pt-3 pb-2 px-5">
+          <div className="flex justify-center mb-2"><div className="w-10 h-1 rounded-full bg-border dark:bg-border-dark" /></div>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold font-display text-text dark:text-text-dark">Edit Program</h2>
+              <p className="text-[11px] text-muted dark:text-muted-dark">Changes apply to program details only</p>
+            </div>
+            <button onClick={onClose} className="w-8 h-8 rounded-full bg-surface-2 dark:bg-surface-2-dark flex items-center justify-center">
+              <X size={14} className="text-muted dark:text-muted-dark" />
+            </button>
+          </div>
+        </div>
+
+        <div className="px-5 pb-10 space-y-5">
+          {/* Name */}
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Program name"
+            className="w-full bg-surface-2 dark:bg-surface-2-dark rounded-xl px-4 py-3 text-[15px] text-text dark:text-text-dark placeholder:text-muted dark:placeholder:text-muted-dark outline-none border-2 border-transparent focus:border-violet transition-colors" />
+
+          {/* Date range */}
+          <div>
+            <p className="text-[11px] font-semibold text-muted dark:text-muted-dark uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Calendar size={11} /> Program period
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <p className="text-[10px] text-muted dark:text-muted-dark mb-1">Start date</p>
+                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+                  className="w-full bg-surface-2 dark:bg-surface-2-dark rounded-xl px-3 py-2.5 text-[13px] text-text dark:text-text-dark outline-none border-2 border-transparent focus:border-violet transition-colors" />
+              </div>
+              <div>
+                <p className="text-[10px] text-muted dark:text-muted-dark mb-1">End date</p>
+                <input type="date" value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)}
+                  className="w-full bg-surface-2 dark:bg-surface-2-dark rounded-xl px-3 py-2.5 text-[13px] text-text dark:text-text-dark outline-none border-2 border-transparent focus:border-violet transition-colors" />
+              </div>
+            </div>
+          </div>
+
+          {/* Schedule */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[13px] font-bold font-display text-text dark:text-text-dark">Workout Schedule</p>
+              <button onClick={addDay}
+                className="text-[11px] font-semibold text-violet flex items-center gap-1 px-3 py-1.5 rounded-full bg-violet/10">
+                <Plus size={11} /> Add Day
+              </button>
+            </div>
+            <div className="space-y-2">
+              {schedule.map((day, i) => (
+                <ScheduleDayRow key={day.id} day={day} templates={templates}
+                  onChange={updateDay} onDelete={deleteDay} index={i} />
+              ))}
+            </div>
+          </div>
+
+          <motion.button onClick={save} whileTap={{ scale: 0.97 }}
+            disabled={!name.trim()}
+            className={cn('w-full py-3.5 rounded-2xl font-semibold text-[15px] transition-opacity',
+              name.trim() ? 'bg-violet text-white' : 'bg-surface-2 dark:bg-surface-2-dark text-muted dark:text-muted-dark opacity-60')}>
+            Save Changes
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/* ══════════════════════════════════════════════
    Program Detail Sheet
 ══════════════════════════════════════════════ */
 function ProgramDetailSheet({ program, onClose }: {
   program: WorkoutProgram;
   onClose: () => void;
 }) {
-  const { workouts, toggleWorkoutCompleted, skipWorkout, pushWorkout } = useAppStore();
+  const { workouts, toggleWorkoutCompleted, skipWorkout, pushWorkout, updateProgram, deleteProgram } = useAppStore();
   const today = todayStr();
 
   // Always read live state — sessions will reflect skip/push immediately
@@ -829,11 +931,10 @@ function ProgramDetailSheet({ program, onClose }: {
 
   const doneCount = sessions.filter(w => (w.date < today || w.completed) && !w.skipped).length;
 
-  // Which session row is currently expanded to show skip/push actions
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  // Workout detail opened from inside this sheet (z-[60] so it layers on top)
+  const [expandedId,    setExpandedId]    = useState<string | null>(null);
   const [viewingWorkout, setViewingWorkout] = useState<Workout | null>(null);
+  const [showEdit,      setShowEdit]      = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
     <>
@@ -857,9 +958,14 @@ function ProgramDetailSheet({ program, onClose }: {
                   {' · '}{program.schedule.length}-day cycle
                 </p>
               </div>
-              <button onClick={onClose} className="w-8 h-8 rounded-full bg-surface-2 dark:bg-surface-2-dark flex items-center justify-center shrink-0 ml-2">
-                <X size={14} className="text-muted dark:text-muted-dark" />
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                <button onClick={() => setShowEdit(true)} className="w-8 h-8 rounded-full bg-surface-2 dark:bg-surface-2-dark flex items-center justify-center">
+                  <Pencil size={13} className="text-muted dark:text-muted-dark" />
+                </button>
+                <button onClick={onClose} className="w-8 h-8 rounded-full bg-surface-2 dark:bg-surface-2-dark flex items-center justify-center">
+                  <X size={14} className="text-muted dark:text-muted-dark" />
+                </button>
+              </div>
             </div>
 
             {/* Progress */}
@@ -1003,9 +1109,47 @@ function ProgramDetailSheet({ program, onClose }: {
                 );
               })}
             </div>
+
+            {/* Delete program */}
+            <div className="mt-6 pt-4 border-t border-border dark:border-border-dark">
+              {confirmDelete ? (
+                <div className="flex gap-2">
+                  <motion.button
+                    onClick={() => { deleteProgram(program.id); onClose(); }}
+                    whileTap={{ scale: 0.97 }}
+                    className="flex-1 py-3 rounded-2xl bg-coral text-white text-[14px] font-semibold">
+                    Yes, delete program &amp; all sessions
+                  </motion.button>
+                  <motion.button
+                    onClick={() => setConfirmDelete(false)}
+                    whileTap={{ scale: 0.97 }}
+                    className="px-5 py-3 rounded-2xl bg-surface-2 dark:bg-surface-2-dark text-[14px] font-semibold text-muted dark:text-muted-dark">
+                    Cancel
+                  </motion.button>
+                </div>
+              ) : (
+                <motion.button
+                  onClick={() => setConfirmDelete(true)}
+                  whileTap={{ scale: 0.97 }}
+                  className="w-full py-3 rounded-2xl bg-coral/10 text-coral text-[14px] font-semibold flex items-center justify-center gap-2">
+                  <Trash2 size={15} /> Delete Program
+                </motion.button>
+              )}
+            </div>
           </div>
         </motion.div>
       </motion.div>
+
+      {/* Edit program sheet */}
+      <AnimatePresence>
+        {showEdit && (
+          <EditProgramSheet
+            program={program}
+            onClose={() => setShowEdit(false)}
+            onSave={p => { updateProgram(p); setShowEdit(false); }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Workout detail layered on top of the program detail */}
       <AnimatePresence>

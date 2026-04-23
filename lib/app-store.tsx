@@ -16,7 +16,7 @@ import {
   dbUpsertIdea, dbDeleteIdea,
   dbUpsertSupply, dbDeleteSupply,
   dbUpsertTemplate, dbDeleteTemplate, dbUpsertTemplates,
-  dbUpsertProgram,
+  dbUpsertProgram, dbDeleteProgram,
 } from './db';
 
 interface AppStore {
@@ -51,8 +51,10 @@ interface AppStore {
   updateTemplate: (t: WorkoutTemplate) => void;
   deleteTemplate: (id: string)         => void;
   /* ── Programs ── */
-  programs:   WorkoutProgram[];
-  addProgram: (p: WorkoutProgram) => void;
+  programs:      WorkoutProgram[];
+  addProgram:    (p: WorkoutProgram) => void;
+  updateProgram: (p: WorkoutProgram) => void;
+  deleteProgram: (id: string)        => void;
   /* ── Goals ── */
   goals:      Goal[];
   addGoal:    (goal: Goal)   => void;
@@ -236,7 +238,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const deleteTemplate = (id: string)         => { setTemplates(prev => prev.filter(x => x.id !== id)); dbDeleteTemplate(id); };
 
   // ── Programs ───────────────────────────────────────────────────────────────
-  const addProgram = (p: WorkoutProgram) => { setPrograms(prev => [p, ...prev]); dbUpsertProgram(p); };
+  const addProgram    = (p: WorkoutProgram) => { setPrograms(prev => [p, ...prev]); dbUpsertProgram(p); };
+  const updateProgram = (p: WorkoutProgram) => { setPrograms(prev => prev.map(x => x.id === p.id ? p : x)); dbUpsertProgram(p); };
+  const deleteProgram = (id: string) => {
+    const programWorkoutIds = workouts.filter(w => w.programId === id).map(w => w.id);
+    setPrograms(prev => prev.filter(p => p.id !== id));
+    setWorkouts(prev => prev.filter(w => w.programId !== id));
+    setTasks(prev => prev.filter(t => !programWorkoutIds.some(wId => t.id === `workout-task-${wId}`)));
+    dbDeleteProgram(id);
+    programWorkoutIds.forEach(wId => { dbDeleteWorkout(wId); dbDeleteTask(`workout-task-${wId}`); });
+  };
 
   return (
     <AppContext.Provider value={{
@@ -244,7 +255,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       tasks, taskStreak, addTask, addTasks, updateTask, deleteTask, toggleTask,
       workouts, addWorkout, addWorkouts, updateWorkout, toggleWorkoutCompleted, skipWorkout, pushWorkout,
       templates, addTemplate, updateTemplate, deleteTemplate,
-      programs, addProgram,
+      programs, addProgram, updateProgram, deleteProgram,
       goals, addGoal, updateGoal, deleteGoal,
       ideas, addIdea, updateIdea, deleteIdea,
       supplies, addSupply, updateSupply, deleteSupply,
