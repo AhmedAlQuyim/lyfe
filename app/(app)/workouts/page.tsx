@@ -12,6 +12,7 @@ import {
 } from '@/lib/mock-data';
 import { useAppStore } from '@/lib/app-store';
 import { cn, formatRelativeDate, formatWeekLabel, formatDuration, formatDisplayTime } from '@/lib/utils';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { parseISO, isSameWeek, format, addDays, differenceInDays } from 'date-fns';
 
 /* ─── Type/colour config ─── */
@@ -249,23 +250,10 @@ function ManageTemplatesSheet({ onClose }: { onClose: () => void }) {
                       className="w-8 h-8 rounded-full bg-surface dark:bg-surface-dark flex items-center justify-center">
                       <Pencil size={13} className="text-muted dark:text-muted-dark" />
                     </button>
-                    {confirmDelete === t.id ? (
-                      <div className="flex gap-1">
-                        <button onClick={() => { deleteTemplate(t.id); setConfirmDelete(null); }}
-                          className="px-2 py-1 rounded-lg bg-coral text-white text-[11px] font-semibold">
-                          Delete
-                        </button>
-                        <button onClick={() => setConfirmDelete(null)}
-                          className="px-2 py-1 rounded-lg bg-surface dark:bg-surface-dark text-[11px] font-semibold text-muted dark:text-muted-dark">
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <button onClick={() => setConfirmDelete(t.id)}
-                        className="w-8 h-8 rounded-full bg-surface dark:bg-surface-dark flex items-center justify-center">
-                        <Trash2 size={13} className="text-muted dark:text-muted-dark" />
-                      </button>
-                    )}
+                    <button onClick={() => setConfirmDelete(t.id)}
+                      className="w-8 h-8 rounded-full bg-surface dark:bg-surface-dark flex items-center justify-center">
+                      <Trash2 size={13} className="text-muted dark:text-muted-dark" />
+                    </button>
                   </div>
                 </div>
               );
@@ -296,6 +284,19 @@ function ManageTemplatesSheet({ onClose }: { onClose: () => void }) {
           />
         )}
       </AnimatePresence>
+
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        title="Delete template?"
+        message={
+          confirmDelete
+            ? `"${templates.find(t => t.id === confirmDelete)?.name ?? 'This template'}" will be permanently deleted.`
+            : undefined
+        }
+        confirmLabel="Delete"
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => { if (confirmDelete) deleteTemplate(confirmDelete); setConfirmDelete(null); }}
+      />
     </>
   );
 }
@@ -1112,33 +1113,25 @@ function ProgramDetailSheet({ program, onClose }: {
 
             {/* Delete program */}
             <div className="mt-6 pt-4 border-t border-border dark:border-border-dark">
-              {confirmDelete ? (
-                <div className="flex gap-2">
-                  <motion.button
-                    onClick={() => { deleteProgram(program.id); onClose(); }}
-                    whileTap={{ scale: 0.97 }}
-                    className="flex-1 py-3 rounded-2xl bg-coral text-white text-[14px] font-semibold">
-                    Yes, delete program &amp; all sessions
-                  </motion.button>
-                  <motion.button
-                    onClick={() => setConfirmDelete(false)}
-                    whileTap={{ scale: 0.97 }}
-                    className="px-5 py-3 rounded-2xl bg-surface-2 dark:bg-surface-2-dark text-[14px] font-semibold text-muted dark:text-muted-dark">
-                    Cancel
-                  </motion.button>
-                </div>
-              ) : (
-                <motion.button
-                  onClick={() => setConfirmDelete(true)}
-                  whileTap={{ scale: 0.97 }}
-                  className="w-full py-3 rounded-2xl bg-coral/10 text-coral text-[14px] font-semibold flex items-center justify-center gap-2">
-                  <Trash2 size={15} /> Delete Program
-                </motion.button>
-              )}
+              <motion.button
+                onClick={() => setConfirmDelete(true)}
+                whileTap={{ scale: 0.97 }}
+                className="w-full py-3 rounded-2xl bg-coral/10 text-coral text-[14px] font-semibold flex items-center justify-center gap-2">
+                <Trash2 size={15} /> Delete Program
+              </motion.button>
             </div>
           </div>
         </motion.div>
       </motion.div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete program?"
+        message={`"${program.name}" and all of its scheduled sessions will be permanently deleted.`}
+        confirmLabel="Delete"
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={() => { deleteProgram(program.id); onClose(); }}
+      />
 
       {/* Edit program sheet */}
       <AnimatePresence>

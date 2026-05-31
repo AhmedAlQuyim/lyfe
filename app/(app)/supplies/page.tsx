@@ -9,6 +9,7 @@ import {
 } from '@/lib/mock-data';
 import { useAppStore } from '@/lib/app-store';
 import { cn } from '@/lib/utils';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -334,40 +335,24 @@ function SupplyDetailSheet({ item, today, onClose, onEdit }: {
           </button>
 
           {/* Delete */}
-          <AnimatePresence mode="wait">
-            {!confirmDelete ? (
-              <motion.button
-                key="del"
-                onClick={() => setConfirmDelete(true)}
-                className="w-full flex items-center justify-center gap-2 text-coral text-[13px] font-medium py-2.5 rounded-2xl transition-colors hover:bg-coral/10"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              >
-                <Trash2 size={14} />
-                Delete Supply
-              </motion.button>
-            ) : (
-              <motion.div
-                key="confirm"
-                className="flex gap-2"
-                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-              >
-                <button
-                  onClick={() => setConfirmDelete(false)}
-                  className="flex-1 py-3 rounded-2xl bg-surface-2 dark:bg-surface-2-dark text-text dark:text-text-dark text-[13px] font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="flex-1 py-3 rounded-2xl bg-coral text-white text-[13px] font-semibold"
-                >
-                  Delete
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="w-full flex items-center justify-center gap-2 text-coral text-[13px] font-medium py-2.5 rounded-2xl transition-colors hover:bg-coral/10"
+          >
+            <Trash2 size={14} />
+            Delete Supply
+          </button>
         </div>
       </motion.div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete supply?"
+        message={`"${item.title}" will be permanently deleted.`}
+        confirmLabel="Delete"
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={handleDelete}
+      />
     </motion.div>
   );
 }

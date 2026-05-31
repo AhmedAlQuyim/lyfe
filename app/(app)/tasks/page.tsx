@@ -7,6 +7,7 @@ import { type Task } from '@/lib/mock-data';
 import { useAppStore } from '@/lib/app-store';
 import { cn, formatRelativeDate, priorityConfig, formatDisplayTime } from '@/lib/utils';
 import { playCompletionSound } from '@/lib/sounds';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 /* ─── Confetti ─── */
 const CONFETTI_COLORS = ['#7C6EF8', '#3EC99A', '#FF7B72', '#F5A524', '#5BAFEF'];
@@ -382,6 +383,7 @@ function TaskCard({ task, onToggle, onDelete, onView, onEdit }: {
         drag="x"
         dragConstraints={{ left: -110, right: 110 }}
         dragElastic={0.05}
+        dragSnapToOrigin
         style={{ x, opacity: cardOpacity }}
         onDragEnd={(_, info) => {
           if (info.offset.x < -90) { onDelete(task.id); return; }
@@ -454,6 +456,7 @@ export default function TasksPage() {
   const [editingTask,     setEditingTask]    = useState<Task | null>(null);
   const [viewingTask,     setViewingTask]    = useState<Task | null>(null);
   const [confetti,        setConfetti]       = useState<{ x: number; y: number } | null>(null);
+  const [pendingDelete,   setPendingDelete]  = useState<Task | null>(null);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -503,7 +506,10 @@ export default function TasksPage() {
     }
   };
 
-  const handleDelete = (id: string) => deleteTask(id);
+  const handleDelete = (id: string) => {
+    const task = tasks.find(t => t.id === id);
+    if (task) setPendingDelete(task);
+  };
 
   const handleSave = (task: Task) => {
     const exists = tasks.find(t => t.id === task.id);
@@ -645,6 +651,15 @@ export default function TasksPage() {
           />
         )}
       </AnimatePresence>
+
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title="Delete task?"
+        message={pendingDelete ? `"${pendingDelete.title}" will be permanently deleted.` : undefined}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => { if (pendingDelete) deleteTask(pendingDelete.id); setPendingDelete(null); }}
+      />
     </div>
   );
 }

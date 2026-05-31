@@ -7,6 +7,7 @@ import { type Goal, type Milestone } from '@/lib/mock-data';
 import { useAppStore } from '@/lib/app-store';
 import { computeGoalStreak } from '@/lib/streak';
 import { cn } from '@/lib/utils';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 const PRESET_COLORS = ['#7C6EF8', '#3EC99A', '#FF7B72', '#F5A524', '#5BAFEF', '#F07FC6', '#94A3B8'];
 const PRESET_ICONS  = ['🎯', '🏃', '📚', '💪', '🧘', '🚀', '💰', '🎨', '🌱', '❤️', '🏋️', '🎵', '🌍', '🔥', '⚡', '🏆', '🛡️', '📖', '✈️', '🧠'];
@@ -423,32 +424,24 @@ function GoalSheet({ goal, onClose, onMilestoneToggle, onEdit }: {
 
           {/* Delete section */}
           <div className="mt-6">
-            {confirmDelete ? (
-              <div className="flex gap-2">
-                <motion.button
-                  onClick={handleDelete}
-                  whileTap={{ scale: 0.97 }}
-                  className="flex-1 py-3 rounded-2xl bg-coral text-white font-semibold text-[14px]">
-                  Confirm Delete
-                </motion.button>
-                <motion.button
-                  onClick={() => setConfirmDelete(false)}
-                  whileTap={{ scale: 0.97 }}
-                  className="flex-1 py-3 rounded-2xl bg-surface-2 dark:bg-surface-2-dark text-muted dark:text-muted-dark font-semibold text-[14px]">
-                  Cancel
-                </motion.button>
-              </div>
-            ) : (
-              <motion.button
-                onClick={() => setConfirmDelete(true)}
-                whileTap={{ scale: 0.97 }}
-                className="w-full py-3 rounded-2xl bg-coral/10 text-coral font-semibold text-[14px]">
-                Delete Goal
-              </motion.button>
-            )}
+            <motion.button
+              onClick={() => setConfirmDelete(true)}
+              whileTap={{ scale: 0.97 }}
+              className="w-full py-3 rounded-2xl bg-coral/10 text-coral font-semibold text-[14px]">
+              Delete Goal
+            </motion.button>
           </div>
         </div>
       </motion.div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete goal?"
+        message={`"${goal.title}" and its milestones will be permanently deleted.`}
+        confirmLabel="Delete"
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={handleDelete}
+      />
     </motion.div>
   );
 }
