@@ -7,12 +7,12 @@ import {
   type Task, type Workout, type WorkoutTemplate, type WorkoutProgram, type Goal, type Idea,
   type TaskStreakState, type SupplyItem,
 } from './mock-data';
-import { updateTaskStreak } from './streak';
+import { updateTaskStreak, computeGoalStreak } from './streak';
 import {
   fetchAllData,
-  dbUpsertTask, dbDeleteTask, dbUpsertTaskStreak,
+  dbUpsertTask, dbUpsertTasks, dbDeleteTask, dbUpsertTaskStreak,
   dbUpsertGoal, dbDeleteGoal,
-  dbUpsertWorkout, dbDeleteWorkout,
+  dbUpsertWorkout, dbUpsertWorkouts, dbDeleteWorkout,
   dbUpsertIdea, dbDeleteIdea,
   dbUpsertSupply, dbDeleteSupply,
   dbUpsertTemplate, dbDeleteTemplate, dbUpsertTemplates,
@@ -94,7 +94,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       if (!data) return; // not logged in — middleware will redirect
       setTasks(data.tasks);
-      setGoals(data.goals);
+
+      // ── Recompute goal streaks against today's date ──────────────────────────
+      // Stored streaks are only recalculated on milestone toggle, so deadlines
+      // that lapse while the app is closed leave the value stale. Re-derive on
+      // load and persist any correction so the DB stays in sync. `longest` is
+      // monotonic — never lowered.
+      const today = new Date().toISOString().split('T')[0];
+      const recomputedGoals = data.goals.map(g => {
+        const c = computeGoalStreak(g.milestones, today);
+        const longest = Math.max(c.longest, g.streak.longest);
+        if (c.current !== g.streak.current || longest !== g.streak.longest) {
+          const updated = { ...g, streak: { current: c.current, longest } };
+          dbUpsertGoal(updated);
+          return updated;
+        }
+        return g;
+      });
+      setGoals(recomputedGoals);
+
       setWorkouts(data.workouts);
       setIdeas(data.ideas);
       setSupplies(data.supplies);
@@ -157,7 +175,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // ── Tasks ──────────────────────────────────────────────────────────────────
   const addTask    = (t: Task)     => { setTasks(prev => [t, ...prev]); dbUpsertTask(t); };
-  const addTasks   = (ts: Task[])  => { setTasks(prev => [...ts, ...prev]); ts.forEach(t => dbUpsertTask(t)); };
+  const addTasks   = (ts: Task[])  => { setTasks(prev => [...ts, ...prev]); dbUpsertTasks(ts); };
   const updateTask = (t: Task)     => { setTasks(prev => prev.map(x => x.id === t.id ? t : x)); dbUpsertTask(t); };
   const deleteTask = (id: string)  => { setTasks(prev => prev.filter(x => x.id !== id)); dbDeleteTask(id); };
 
@@ -174,7 +192,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // ── Workouts ───────────────────────────────────────────────────────────────
   const addWorkout  = (w: Workout)    => { setWorkouts(prev => [w, ...prev]); dbUpsertWorkout(w); };
-  const addWorkouts = (ws: Workout[]) => { setWorkouts(prev => [...ws, ...prev]); ws.forEach(w => dbUpsertWorkout(w)); };
+  const addWorkouts = (ws: Workout[]) => { setWorkouts(prev => [...ws, ...prev]); dbUpsertWorkouts(ws); };
 
   const updateWorkout = (w: Workout) => {
     setWorkouts(prev => prev.map(x => x.id === w.id ? w : x));

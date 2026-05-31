@@ -65,6 +65,7 @@ function GoalFormSheet({ initial, onClose, zIndex = 50 }: {
   const [status,      setStatus]      = useState<Goal['status']>(initial?.status ?? 'active');
   const [milestones,  setMilestones]  = useState<Milestone[]>(initial?.milestones ?? []);
   const [newMilestone, setNewMilestone] = useState('');
+  const [newMilestoneDue, setNewMilestoneDue] = useState('');
   const milestoneInputRef = useRef<HTMLInputElement>(null);
 
   const addMilestone = () => {
@@ -74,8 +75,10 @@ function GoalFormSheet({ initial, onClose, zIndex = 50 }: {
       id: `m-${Date.now()}-${Math.random()}`,
       title,
       completed: false,
+      ...(newMilestoneDue ? { dueBy: newMilestoneDue } : {}),
     }]);
     setNewMilestone('');
+    setNewMilestoneDue('');
     milestoneInputRef.current?.focus();
   };
 
@@ -233,6 +236,11 @@ function GoalFormSheet({ initial, onClose, zIndex = 50 }: {
                     <span className={cn('text-[13px] font-medium flex-1 text-text dark:text-text-dark', m.completed && 'line-through text-muted dark:text-muted-dark')}>
                       {m.title}
                     </span>
+                    {m.dueBy && (
+                      <span className="text-[10px] text-muted dark:text-muted-dark shrink-0 tabular-nums">
+                        {m.dueBy}
+                      </span>
+                    )}
                     <button onClick={() => deleteMilestone(m.id)}
                       className="text-muted dark:text-muted-dark hover:text-coral transition-colors p-0.5">
                       <X size={13} />
@@ -243,20 +251,32 @@ function GoalFormSheet({ initial, onClose, zIndex = 50 }: {
             )}
 
             {/* Add milestone input */}
-            <div className="flex gap-2">
+            <div className="space-y-2">
               <input
                 ref={milestoneInputRef}
                 value={newMilestone}
                 onChange={e => setNewMilestone(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addMilestone()}
                 placeholder="Add a milestone..."
-                className="flex-1 bg-surface-2 dark:bg-surface-2-dark rounded-xl px-4 py-2.5 text-[13px] text-text dark:text-text-dark outline-none border-2 border-transparent focus:border-accent dark:focus:border-violet transition-colors placeholder:text-muted dark:placeholder:text-muted-dark"
+                className="w-full bg-surface-2 dark:bg-surface-2-dark rounded-xl px-4 py-2.5 text-[13px] text-text dark:text-text-dark outline-none border-2 border-transparent focus:border-accent dark:focus:border-violet transition-colors placeholder:text-muted dark:placeholder:text-muted-dark"
               />
-              <button onClick={addMilestone}
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-lg font-bold shrink-0"
-                style={{ backgroundColor: color }}>
-                +
-              </button>
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={newMilestoneDue}
+                  onChange={e => setNewMilestoneDue(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addMilestone()}
+                  className="flex-1 bg-surface-2 dark:bg-surface-2-dark rounded-xl px-4 py-2.5 text-[13px] text-muted dark:text-muted-dark outline-none border-2 border-transparent focus:border-accent dark:focus:border-violet transition-colors"
+                />
+                <button onClick={addMilestone}
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-lg font-bold shrink-0"
+                  style={{ backgroundColor: color }}>
+                  +
+                </button>
+              </div>
+              <p className="text-[10px] text-muted dark:text-muted-dark">
+                Add a deadline to count this milestone toward your streak — finish on time to keep it going.
+              </p>
             </div>
           </div>
 
@@ -388,9 +408,13 @@ function GoalSheet({ goal, onClose, onMilestoneToggle, onEdit }: {
                     <span className={cn('text-[13px] font-medium text-text dark:text-text-dark flex-1', m.completed && 'line-through text-muted dark:text-muted-dark')}>
                       {m.title}
                     </span>
-                    {m.completedAt && (
-                      <span className="text-[10px] text-muted dark:text-muted-dark">{m.completedAt}</span>
-                    )}
+                    {m.completed && m.completedAt ? (
+                      <span className="text-[10px] text-muted dark:text-muted-dark tabular-nums">{m.completedAt}</span>
+                    ) : m.dueBy ? (
+                      <span className={cn('text-[10px] tabular-nums', m.dueBy < new Date().toISOString().split('T')[0] ? 'text-coral' : 'text-muted dark:text-muted-dark')}>
+                        due {m.dueBy}
+                      </span>
+                    ) : null}
                   </motion.button>
                 ))}
               </div>

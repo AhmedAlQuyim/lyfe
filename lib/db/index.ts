@@ -11,10 +11,15 @@ import type {
 } from '../mock-data';
 
 // ─── Auth helper ─────────────────────────────────────────────────────────────
+// Use getSession() (reads the token from local storage) rather than getUser()
+// (a network round-trip that validates server-side). getSession holds the
+// auth lock only briefly, which avoids the 5s lock timeout / "steal" that was
+// causing concurrent writes to reject with AbortError and silently fail.
+// Security is unaffected: RLS validates the JWT on every request server-side.
 async function getUser() {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.user ?? null;
 }
 
 // ─── Row ↔ App mappers ────────────────────────────────────────────────────────
@@ -377,6 +382,22 @@ export async function dbDeleteTask(id: string) {
   await createClient().from('tasks').delete().eq('id', id);
 }
 
+/**
+ * Bulk-upsert many tasks in a single request with ONE auth check.
+ * Used when a batch is created at once (e.g. generating a program's sessions)
+ * to avoid firing dozens of concurrent getUser()/upsert calls, which can be
+ * rate-limited by the auth server and silently dropped.
+ */
+export async function dbUpsertTasks(tasks: Task[]) {
+  if (tasks.length === 0) return;
+  const user = await getUser();
+  if (!user) { console.error('[LYFE] dbUpsertTasks: no authenticated user'); return; }
+  const { error } = await createClient()
+    .from('tasks')
+    .upsert(tasks.map(t => taskToRow(t, user.id)));
+  if (error) console.error('[LYFE] dbUpsertTasks error:', error);
+}
+
 export async function dbUpsertTaskStreak(streak: TaskStreakState) {
   const user = await getUser();
   if (!user) return;
@@ -431,6 +452,36 @@ export async function dbUpsertWorkout(workout: Workout) {
 
 export async function dbDeleteWorkout(id: string) {
   await createClient().from('workouts').delete().eq('id', id);
+}
+
+/**
+ * Bulk-upsert many workouts (and their exercises) with ONE auth check.
+ * Used when generating a program's sessions so we don't fan out into dozens
+ * of concurrent getUser()/upsert calls — those can be throttled by the auth
+ * server, return null, and get silently skipped, which previously caused
+ * whole programs to vanish after a reload.
+ */
+export async function dbUpsertWorkouts(workouts: Workout[]) {
+  if (workouts.length === 0) return;
+  const user = await getUser();
+  if (!user) { console.error('[LYFE] dbUpsertWorkouts: no authenticated user'); return; }
+  const supabase = createClient();
+
+  const { error: wErr } = await supabase
+    .from('workouts')
+    .upsert(workouts.map(w => workoutToRow(w, user.id)));
+  if (wErr) console.error('[LYFE] dbUpsertWorkouts error:', wErr);
+
+  // Replace exercises for all of these workouts in one delete + one insert.
+  const ids = workouts.map(w => w.id);
+  await supabase.from('exercises').delete().in('workout_id', ids).eq('user_id', user.id);
+  const exRows = workouts.flatMap(w =>
+    w.exercises.map((e, i) => exerciseToRow(e, w.id, user.id, i))
+  );
+  if (exRows.length > 0) {
+    const { error: eErr } = await supabase.from('exercises').insert(exRows);
+    if (eErr) console.error('[LYFE] dbUpsertWorkouts exercises error:', eErr);
+  }
 }
 
 // ─── Ideas ───────────────────────────────────────────────────────────────────
