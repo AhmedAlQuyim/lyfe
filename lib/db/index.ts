@@ -541,3 +541,41 @@ export async function dbUpsertProgram(p: WorkoutProgram) {
 export async function dbDeleteProgram(id: string) {
   await createClient().from('workout_programs').delete().eq('id', id);
 }
+
+// ─── Calendar feed token ─────────────────────────────────────────────────────
+
+/** 48-hex-char unguessable token for the public .ics feed URL. */
+function genCalendarToken(): string {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Returns the user's calendar feed token, creating one on first use. */
+export async function dbGetOrCreateCalendarToken(): Promise<string | null> {
+  const user = await getUser();
+  if (!user) return null;
+  const supabase = createClient();
+
+  const { data } = await supabase
+    .from('calendar_tokens')
+    .select('token')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (data?.token) return data.token as string;
+
+  const token = genCalendarToken();
+  const { error } = await supabase.from('calendar_tokens').upsert({ user_id: user.id, token });
+  if (error) { console.error('[LYFE] create calendar token error:', error); return null; }
+  return token;
+}
+
+/** Issues a fresh token (revoking the old feed URL). */
+export async function dbRegenerateCalendarToken(): Promise<string | null> {
+  const user = await getUser();
+  if (!user) return null;
+  const token = genCalendarToken();
+  const { error } = await createClient().from('calendar_tokens').upsert({ user_id: user.id, token });
+  if (error) { console.error('[LYFE] regenerate calendar token error:', error); return null; }
+  return token;
+}

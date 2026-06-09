@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Clock, CalendarPlus } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronLeft, ChevronRight, Clock, CalendarPlus, CalendarCheck, X, Copy, Check, RefreshCw, Smartphone, Globe } from 'lucide-react';
 import { format, addDays, subDays, parseISO, isToday as checkIsToday } from 'date-fns';
 import { type Task } from '@/lib/mock-data';
 import { useAppStore } from '@/lib/app-store';
+import { dbGetOrCreateCalendarToken, dbRegenerateCalendarToken } from '@/lib/db';
 import { cn, timeToPx, durationPx, getCurrentMinutes, formatDisplayTime } from '@/lib/utils';
 
 const PX_PER_HOUR = 80;
@@ -205,11 +206,138 @@ async function exportToCalendar(tasks: Task[], dateStr: string, displayDate: str
   URL.revokeObjectURL(url);
 }
 
+/* ─── Calendar Sync Sheet ─── */
+function CalendarSyncSheet({ onClose }: { onClose: () => void }) {
+  const [token,   setToken]   = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [copied,  setCopied]  = useState(false);
+  const [busy,    setBusy]    = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    dbGetOrCreateCalendarToken().then(t => {
+      if (!cancelled) { setToken(t); setLoading(false); }
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const host   = typeof window !== 'undefined' ? window.location.host : '';
+  const feedUrl   = token ? `${origin}/api/calendar/${token}` : '';
+  const appleUrl  = token ? `webcal://${host}/api/calendar/${token}` : '';
+  const googleUrl = token ? `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(feedUrl)}` : '';
+
+  const copy = async () => {
+    if (!feedUrl) return;
+    try { await navigator.clipboard.writeText(feedUrl); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch {}
+  };
+
+  const regenerate = async () => {
+    setBusy(true);
+    const t = await dbRegenerateCalendarToken();
+    if (t) setToken(t);
+    setBusy(false);
+  };
+
+  return (
+    <motion.div className="fixed inset-0 z-50 flex flex-col justify-end"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <motion.div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        className="relative bg-surface dark:bg-surface-dark rounded-t-3xl border-t-4 border-violet max-h-[90vh] overflow-y-auto no-scrollbar"
+        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+        transition={{ type: 'spring', stiffness: 380, damping: 40 }}
+      >
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-border dark:bg-border-dark" />
+        </div>
+
+        <div className="px-5 pb-[88px] pt-2">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-lg font-bold font-display text-text dark:text-text-dark">Sync calendar</h2>
+            <button onClick={onClose} className="w-8 h-8 rounded-full bg-surface-2 dark:bg-surface-2-dark flex items-center justify-center">
+              <X size={14} className="text-muted dark:text-muted-dark" />
+            </button>
+          </div>
+          <p className="text-[12px] text-muted dark:text-muted-dark mb-4">
+            Subscribe your phone or Google account to keep your LYFE schedule in your calendar. Updates flow one way (LYFE → calendar) and refresh automatically.
+          </p>
+
+          {loading ? (
+            <div className="py-10 text-center text-[13px] text-muted dark:text-muted-dark">Preparing your feed…</div>
+          ) : !token ? (
+            <div className="py-10 text-center text-[13px] text-coral">Couldn’t create your feed. Please sign in again and retry.</div>
+          ) : (
+            <div className="space-y-2.5">
+              <a
+                href={appleUrl}
+                className="flex items-center gap-3 w-full p-3.5 rounded-2xl bg-surface-2 dark:bg-surface-2-dark"
+              >
+                <div className="w-9 h-9 rounded-xl bg-violet/15 flex items-center justify-center shrink-0">
+                  <Smartphone size={17} className="text-violet" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold text-text dark:text-text-dark">Add to Apple Calendar</p>
+                  <p className="text-[11px] text-muted dark:text-muted-dark">iPhone / iPad · refreshes every ~15 min–few hrs</p>
+                </div>
+                <CalendarCheck size={16} className="text-muted dark:text-muted-dark shrink-0" />
+              </a>
+
+              <a
+                href={googleUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 w-full p-3.5 rounded-2xl bg-surface-2 dark:bg-surface-2-dark"
+              >
+                <div className="w-9 h-9 rounded-xl bg-mint/15 flex items-center justify-center shrink-0">
+                  <Globe size={17} className="text-mint" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold text-text dark:text-text-dark">Add to Google Calendar</p>
+                  <p className="text-[11px] text-muted dark:text-muted-dark">Opens Google · note: Google refreshes slowly (hrs)</p>
+                </div>
+                <CalendarCheck size={16} className="text-muted dark:text-muted-dark shrink-0" />
+              </a>
+
+              <button
+                onClick={copy}
+                className="flex items-center gap-3 w-full p-3.5 rounded-2xl bg-surface-2 dark:bg-surface-2-dark text-left"
+              >
+                <div className="w-9 h-9 rounded-xl bg-surface dark:bg-surface-dark flex items-center justify-center shrink-0">
+                  {copied ? <Check size={17} className="text-mint" /> : <Copy size={16} className="text-muted dark:text-muted-dark" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold text-text dark:text-text-dark">{copied ? 'Copied!' : 'Copy feed URL'}</p>
+                  <p className="text-[11px] text-muted dark:text-muted-dark truncate">{feedUrl}</p>
+                </div>
+              </button>
+
+              <button
+                onClick={regenerate}
+                disabled={busy}
+                className="flex items-center gap-2 justify-center w-full p-3 rounded-2xl text-coral text-[13px] font-medium disabled:opacity-50"
+              >
+                <RefreshCw size={14} className={busy ? 'animate-spin' : ''} />
+                {busy ? 'Regenerating…' : 'Regenerate link (revokes the old one)'}
+              </button>
+
+              <p className="text-[11px] text-muted dark:text-muted-dark text-center pt-1">
+                Keep this link private — anyone with it can see your schedule.
+              </p>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 /* ─── Schedule Page ─── */
 export default function SchedulePage() {
   const { tasks: allTasks } = useAppStore();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentMins, setCurrentMins] = useState(getCurrentMinutes());
+  const [showSync, setShowSync] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const dateStr = format(currentDate, 'yyyy-MM-dd');
@@ -288,16 +416,26 @@ export default function SchedulePage() {
         {dayTasks.length === 0 && (
           <span className="text-[11px] text-muted dark:text-muted-dark">— free day!</span>
         )}
-        {dayTasks.length > 0 && (
+        <div className="ml-auto flex items-center gap-2">
+          {dayTasks.length > 0 && (
+            <motion.button
+              onClick={() => exportToCalendar(dayTasks, dateStr, format(currentDate, 'MMMM d, yyyy'))}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-violet/10 rounded-full border border-violet/30"
+            >
+              <CalendarPlus size={11} className="text-violet" />
+              <span className="text-[11px] font-medium text-violet">Add day</span>
+            </motion.button>
+          )}
           <motion.button
-            onClick={() => exportToCalendar(dayTasks, dateStr, format(currentDate, 'MMMM d, yyyy'))}
+            onClick={() => setShowSync(true)}
             whileTap={{ scale: 0.95 }}
-            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-violet/10 rounded-full border border-violet/30"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-mint/10 rounded-full border border-mint/30"
           >
-            <CalendarPlus size={11} className="text-violet" />
-            <span className="text-[11px] font-medium text-violet">Add to Calendar</span>
+            <CalendarCheck size={11} className="text-mint" />
+            <span className="text-[11px] font-medium text-mint">Sync</span>
           </motion.button>
-        )}
+        </div>
       </div>
 
       {/* Timeline scroll container */}
@@ -329,6 +467,10 @@ export default function SchedulePage() {
           </div>
         </div>
       )}
+
+      <AnimatePresence>
+        {showSync && <CalendarSyncSheet onClose={() => setShowSync(false)} />}
+      </AnimatePresence>
     </div>
   );
 }
