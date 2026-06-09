@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
-import { Plus, Check, Trash2, Pencil, X, Clock, Calendar, RotateCcw, ChevronRight, Flag } from 'lucide-react';
+import { Plus, Check, Trash2, Pencil, X, Clock, Calendar, RotateCcw, ChevronRight, Flag, Dumbbell } from 'lucide-react';
 import { type Task } from '@/lib/mock-data';
 import { useAppStore } from '@/lib/app-store';
 import { cn, formatRelativeDate, priorityConfig, formatDisplayTime } from '@/lib/utils';
@@ -460,7 +461,17 @@ export default function TasksPage() {
 
   const today = new Date().toISOString().split('T')[0];
 
+  // Workout-program sessions are generated as one task per session. Future ones
+  // flood the list, so we keep them out of the task views — they live on the
+  // Workouts page. Today's session still shows (so the daily agenda + streak are
+  // unaffected); past ones remain for history.
+  const isProgramSession = (t: Task) => t.notes?.startsWith('Program:') ?? false;
+  const hiddenWorkoutCount = tasks.filter(
+    t => isProgramSession(t) && t.dueDate > today && !t.completed,
+  ).length;
+
   const filteredTasks = tasks
+    .filter(t => !(isProgramSession(t) && t.dueDate > today))
     .filter(t => {
       const passTime = (() => {
         if (filter === 'today')    return t.dueDate === today;
@@ -596,6 +607,20 @@ export default function TasksPage() {
         <p className="text-[11px] text-muted dark:text-muted-dark text-center">
           ← swipe to delete &nbsp;·&nbsp; swipe to edit →
         </p>
+      )}
+
+      {/* Future workout sessions live on the Workouts page — surface a link so they're not "lost" */}
+      {(filter === 'upcoming' || filter === 'all') && hiddenWorkoutCount > 0 && (
+        <Link
+          href="/workouts"
+          className="flex items-center justify-between gap-2 rounded-2xl bg-orange/10 px-4 py-2.5 text-[12px] font-medium text-orange"
+        >
+          <span className="flex items-center gap-2">
+            <Dumbbell size={14} />
+            {hiddenWorkoutCount} upcoming workout session{hiddenWorkoutCount > 1 ? 's' : ''} in your programs
+          </span>
+          <span className="flex items-center gap-1 shrink-0">View <ChevronRight size={13} /></span>
+        </Link>
       )}
 
       {/* Task list */}
